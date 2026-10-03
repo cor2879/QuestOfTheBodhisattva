@@ -61,3 +61,6 @@ __pycache__/
 play.html
 manifest.json
 *.zip
+
+# Emscripten intermediate build output
+build/

@@ -1,0 +1,839 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>
+#include "playerOverworld.h"
+#include "worldMap.h"
+#include "engine/geometry.h"
+#include "engine/camera.h"
+#include "engine/input.h"
+#include "engine/audio.h"
+#include "data/saveAndLoad.h"
+#include "data/bevery.h"
+#include "data/enemy.h"
+#include "ui/uiConsole.h"
+#include "ui/uiztats.h"
+#include "scenes/sceneDiskLoader.h"
+#include "scenes/sceneOverworld.h"
+#include "scenes/sceneTown.h"
+#include "scenes/sceneCastle.h"
+#include "scenes/sceneDungeon.h"
+#include "scenes/sceneSpace.h"
+#include "scenes/sceneMondain.h"
+#include "maths/matrix4.h"
+#include "vehicleOverworld.h"
+#include "config.h"
+#include "utils.h"
+#include "vmExecuter.h"
+#include "playerCommons.h"
+#include "memory.h"
+
+static Geometry playerOverworldGeometry;
+static float transformationMatrix[16];
+
+static Geometry *enemyGeometry = NULL;
+static float enemyTransformationMatrix[16];
+static bool renderEnemy = false;
+
+static int lastSignpost = -1;
+static int liftoffCountdown = 11;
+static char liftoffCountdownString[22];
+
+static void playerOverworldExitSpaceShuttle() {
+  if (player.vehicle != 6) { return; }
+
+  vehiclesMap[player.ty][player.tx] = player.vehicle;
+  player.vehicle = 0;
+  playerState = PLAYER_STATE_IDLE;
+  liftoffCountdown = 11;
+}
+
+void playerOverworld_init() {
+  playerOverworldExitSpaceShuttle();
+  playerOverworld_updateGeometry();
+  matrix4_setIdentity(transformationMatrix);
+  matrix4_setIdentity(enemyTransformationMatrix);
+  playerOverworld_setCameraFollow();
+
+}
+
+bool playerOverworld_tryAndDodgeEnemies(int mx, int my) {
+  if (enemyEncounter.monsterId <= 0 || 
+    (float)(player.strength + player.agility) / 400.0f > rand01() ||
+    player.vehicle + 2 > rand01() * 14
+  ) {
+    enemyEncounter.monsterId = 0;
+    renderEnemy = false;
+    return true;
+  }
+
+  char encounterMessage[31] = {0};
+  snprintf(encounterMessage, sizeof(encounterMessage), "^1%.15s %.8s^0", ultimaStrings[121], enemyDefinitions[enemyEncounter.monsterId].name);
+  uiConsole_queueMessage(encounterMessage);
+
+  renderEnemy = true;
+  if (enemyGeometry != NULL) {
+    geometry_free(enemyGeometry);
+    free(enemyGeometry);
+    enemyGeometry = NULL;
+  }
+
+  int tile = (worldMap_getPlayerTile() >> 4) & 0x0F;
+  if (tile > 2) { tile = 1; }
+  float tx1 = tile * (OS_ENEMY_SPRITE_WIDTH / (float)ultimaAssets.enemySprites.width);
+  float tx2 = tx1 + (OS_ENEMY_SPRITE_WIDTH / (float)ultimaAssets.enemySprites.width);
+
+  enemyGeometry = (Geometry*) malloc(sizeof(Geometry));
+  matrix4_setPosition(enemyTransformationMatrix, (player.tx + mx) * OS_TILE_WIDTH, (player.ty + my) * OS_TILE_HEIGHT, 3.0f);
+  geometry_setSprite(enemyGeometry, OS_ENEMY_SPRITE_WIDTH, OS_ENEMY_SPRITE_HEIGHT, tx1, 0, tx2, 1);
+
+  return false;
+}
+
+bool playerOverworld_updateMovement(float deltaTime) {
+  int moveX = 0;
+  int moveY = 0;
+  char movementCommand[30] = {0};
+
+  if (input.up) {
+    moveY = -1;
+    snprintf(movementCommand, sizeof(movementCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[117]);
+  } else if (input.down) {
+    moveY = 1;
+    snprintf(movementCommand, sizeof(movementCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[118]);
+  } else if (input.left) {
+    moveX = -1;
+    snprintf(movementCommand, sizeof(movementCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[120]);
+  } else if (input.right) {
+    moveX = 1;
+    snprintf(movementCommand, sizeof(movementCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[119]);
+  }
+
+  if (moveX != 0 || moveY != 0) {
+    waitingTime = 0.0f;
+    int nextX = (player.tx + moveX + OS_BTERRA_MAP_WIDTH * 2) % (OS_BTERRA_MAP_WIDTH * 2);
+    int nextY = (player.ty + moveY + OS_BTERRA_MAP_HEIGHT * 2) % (OS_BTERRA_MAP_HEIGHT * 2);
+    int tx = nextX % OS_BTERRA_MAP_WIDTH;
+    int ty = nextY % OS_BTERRA_MAP_HEIGHT;
+    int world = (nextY / OS_BTERRA_MAP_HEIGHT) * 2 + (nextX / OS_BTERRA_MAP_WIDTH);
+    int tile = (ultimaAssets.bterraMaps[world][ty][tx] >> 4) & 0x0F;
+
+    uiConsole_replaceLastMessage(movementCommand);
+
+    if (!playerOverworld_tryAndDodgeEnemies(moveX, moveY)) {
+      keyRepeatDelay = 0.3f;
+      return true;
+    }
+
+    int vehicleTile = vehiclesMap[nextY][nextX];
+
+    if (vehicleTile == 0 || player.vehicle != 0) {
+      if (tile == 0 && (player.vehicle < 3 || player.vehicle > 5)) {
+        uiConsole_addMessage(ultimaStrings[122]);
+        keyRepeatDelay = 0.3f;
+        audio_playAlert(1);
+        return true;
+      } else if (tile == 3) {
+        uiConsole_addMessage(ultimaStrings[123]);
+        keyRepeatDelay = 0.3f;
+        audio_playAlert(1);
+        return true;
+      } else if (tile == 2 && player.vehicle == 5) {
+        uiConsole_addMessage(ultimaStrings[124]);
+        keyRepeatDelay = 0.3f;
+        audio_playAlert(1);
+        return true;
+      } else if (tile > 0 && (player.vehicle == 3 || player.vehicle == 4)) {
+        uiConsole_addMessageFormat("%.14s%.15s", vehicleNames[player.vehicle], ultimaStrings[125]);
+        keyRepeatDelay = 0.3f;
+        audio_playAlert(1);
+        return true;
+      }
+    }
+
+    player.tx = (player.tx + moveX + OS_BTERRA_MAP_WIDTH * 2) % (OS_BTERRA_MAP_WIDTH * 2);
+    player.ty = (player.ty + moveY + OS_BTERRA_MAP_HEIGHT * 2) % (OS_BTERRA_MAP_HEIGHT * 2);
+    playerOverworld_setCameraFollow();
+    keyRepeatDelay = 0.1f;
+
+    player_consumeFood();
+
+    return true;
+  } else {
+    waitingTime += deltaTime;
+    if (waitingTime >= 5.0f) {
+      waitingTime = 0.0f;
+      snprintf(movementCommand, sizeof(movementCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[99]);
+      uiConsole_replaceLastMessage(movementCommand);
+      player_waitPenalty();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool playerOverworld_updateSave() {
+  if (input.q == 1) {
+    input.q = 2;
+    uiConsole_addMessage(ultimaStrings[190]);
+    waitingTime = 0.0f;
+    memset(&input, 0, sizeof(input));
+    saveGame();
+    uiConsole_addMessage(ultimaStrings[197]);
+    return true;
+  }
+
+  return false;
+}
+
+static bool playerOverworld_updateInfo() {
+  if (input.i == 1) {
+    input.i = 2;
+    waitingTime = 0.0f;
+    memset(&input, 0, sizeof(input));
+
+    uiConsole_addMessage(ultimaStrings[176]);
+
+    int tx = (int)(player.tx % OS_BTERRA_MAP_WIDTH);
+    int ty = (int)(player.ty % OS_BTERRA_MAP_HEIGHT);
+    int world = ((int)player.ty / OS_BTERRA_MAP_HEIGHT) * 2 + ((int)player.tx / OS_BTERRA_MAP_WIDTH);
+    int tile = (ultimaAssets.bterraMaps[world][ty][tx] >> 4) & 0x0F;
+    int tileType = ultimaAssets.bterraMaps[world][ty][tx] & 0x0F;
+
+    if (tile == 0) { uiConsole_addMessage(ultimaStrings[177]); } else
+    if (tile == 1) { uiConsole_addMessage(ultimaStrings[178]); } else
+    if (tile == 2) { uiConsole_addMessage(ultimaStrings[179]); } else 
+    if (tile == 4) { uiConsole_addMessage(placesNames[world * 20 + tileType + 1]); } else
+    if (tile == 5) { uiConsole_addMessage(placesNames[world * 20 + tileType + 3]); } else
+    if (tile == 6) { 
+      uiConsole_addMessageFormat("%s%s", ultimaStrings[180], placesNames[world * 20 + tileType + 13]);
+    } else
+    if (tile == 7) { uiConsole_addMessage(placesNames[world * 20 + tileType + 5]); }
+
+    uiConsole_addMessage(ultimaStrings[181]);
+
+    return true;
+  }
+
+  return false;
+}
+
+static bool playerOverworld_updateGet() {
+  if (input.g == 1) {
+    input.g = 2;
+    waitingTime = 0.0f;
+    memset(&input, 0, sizeof(input));
+
+    char getCommand[31] = {0};
+    snprintf(getCommand, sizeof(getCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[173]);
+    uiConsole_replaceLastMessage(getCommand);
+    uiConsole_addMessage(ultimaStrings[174]);
+
+    return true;
+  }
+
+  return false;
+}
+
+static bool playerOverworld_updateOpen() {
+  if (input.o == 1) {
+    input.o = 2;
+    waitingTime = 0.0f;
+    memset(&input, 0, sizeof(input));
+
+    char openCommand[31] = {0};
+    snprintf(openCommand, sizeof(openCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[187]);
+    uiConsole_replaceLastMessage(openCommand);
+    uiConsole_addMessage(ultimaStrings[188]);
+
+    return true;
+  }
+
+  return false;
+}
+
+static bool playerOverworld_updateDrop() {
+  if (input.d == 1) {
+    input.d = 2;
+    waitingTime = 0.0f;
+    memset(&input, 0, sizeof(input));
+
+    char dropCommand[31] = {0};
+    snprintf(dropCommand, sizeof(dropCommand), "%.14s%.15s", ultimaStrings[98], ultimaStrings[162]);
+    uiConsole_replaceLastMessage(dropCommand);
+
+    return true;
+  }
+
+  return false;
+}
+
+static void playerOverworld_checkIfEnemiesDead() {
+  if (enemyEncounter.hp < 0) {
+    int monsterId = enemyEncounter.monsterId;
+
+    enemyEncounter.number -= 1;
+    
+    player.experience += enemyDefinitions[monsterId].rank * 5;
+    int goldEarned = (int)(enemyDefinitions[monsterId].rank * 4 * rand01()) + 10;
+    player.gold += goldEarned;
+
+    uiConsole_queueMessageFormat("%.15s+%d", ultimaStrings[134], goldEarned);
+    audio_playAlert(3);
+
+    if (enemyEncounter.number <= 0) {
+      enemyEncounter.monsterId = -1;
+      renderEnemy = false;
+      if (enemyGeometry != NULL) {
+        geometry_free(enemyGeometry);
+        free(enemyGeometry);
+        enemyGeometry = NULL;
+      }
+    } else {
+      enemyEncounter.hp = (int)(20 * rand01() + pow(rand01(), 2) * (int)(player.time / 1000.0f)) + 5;
+    }
+
+    uiConsole_updateStats();
+  }
+}
+
+static bool playerOverworld_updateAttack() {
+  if (input.a == 1) {
+    input.a = 2;
+    waitingTime = 0.0f;
+    lagTime = 1.5f;
+
+    uiConsole_replaceLastMessageFormat("%.11s^F^1%.12s^0", ultimaStrings[98], ultimaStrings[126]);
+
+    int monsterId = enemyEncounter.monsterId;
+
+    if (monsterId < 6 || monsterId > 20) {
+      uiConsole_queueMessage(ultimaStrings[127]);
+      return true;
+    }
+
+    uiConsole_queueMessageFormat("^F^1%s^0", enemyDefinitions[monsterId].name);
+
+    if ((monsterId < 10 || monsterId == 12) && (player.weapon < 7 || player.weapon == 11 || player.weapon == 13)) {
+      uiConsole_queueMessage(ultimaStrings[128]);
+      return true;
+    }
+
+    uiConsole_queueMessageFormat("%.15s%s", ultimaStrings[129], weaponNames[player.weapon]);
+
+    if (player.weapon > 7 && player.weapon < 12) {
+      uiConsole_queueMessageFormat("%.10s%.19s", weaponNames[player.weapon], ultimaStrings[135]);
+      audio_playAlert(1);
+      return true;
+    }
+
+    float attack = rand01() * 20.0f + (float)(player.strength + player.agility) / 5.0f + (float)player.weapon;
+    int defense = enemyDefinitions[monsterId].rank + 10;
+    if (attack > defense || attack > 20) {
+      int damage = (int)((player.strength + player.weapon) * rand01()) + 1;
+      uiConsole_queueMessageFormat("%.5s%.10s%d", ultimaStrings[131], ultimaStrings[132], damage);
+      audio_playAlert(3);
+
+      enemyEncounter.hp -= damage;
+
+      playerOverworld_checkIfEnemiesDead();
+
+      return true;
+    }
+
+    uiConsole_queueMessage(ultimaStrings[130]);
+    
+    return true;
+  }
+
+  return false;
+}
+
+static bool playerOverwolrd_updateCast() {
+  if (input.c == 1) {
+    input.c = 2;
+    waitingTime = 0.0f;
+
+    uiConsole_queueMessageFormat("%.15s%.15s", ultimaStrings[145], spellNames[player.spell]);
+
+    if (player.spell > 0 && player.spells[player.spell] < 1) {
+      uiConsole_queueMessage(ultimaStrings[146]);
+      uiConsole_queueMessageFormat("%.15s%.15s", spellNames[player.spell], ultimaStrings[147]);
+      return true;
+    }
+
+    player.spells[player.spell] -= 1;
+
+    switch (player.spell) {
+      case 0:
+        uiConsole_queueMessageFormat("^T1%.27s", ultimaStrings[148]);
+        int randomEffect = rand01() * 3 + 1;
+        bool removedEnemies = false;
+        if (randomEffect == 1 && enemyEncounter.monsterId > 0) {
+          uiConsole_queueMessage(ultimaStrings[149]);
+          enemyEncounter.monsterId = 0;
+          renderEnemy = false;
+          removedEnemies = true;
+
+          if (player.gold > 20) {
+            player.gold -= 20;
+          }
+        }
+
+        if (!removedEnemies){
+          if (randomEffect < 3 && player.health < 10) {
+            player.health = 10;
+            uiConsole_queueMessage(ultimaStrings[150]);
+          } else if (player.food < 10) {
+            player.food = 10;
+            uiConsole_queueMessage(ultimaStrings[150]);
+          } else {
+            uiConsole_queueMessage(ultimaStrings[152]);
+          }
+        }
+        
+        uiConsole_updateStats();
+        break;
+
+      case 3:
+        if (enemyEncounter.monsterId < 1) {
+          uiConsole_queueMessage(ultimaStrings[153]);
+        } else {
+          uiConsole_queueMessageFormat("^T1%.27s", ultimaStrings[154]);
+
+          int damage = (int)(player.wisdom / 2);
+          if (player.weapon > 7 && player.weapon < 12) {
+            damage += player.weapon * 2;
+          }
+
+          uiConsole_queueMessageFormat("%.10s%.10s%d", ultimaStrings[155], ultimaStrings[156], damage);
+          audio_playAlert(3);
+
+          enemyEncounter.hp -= damage;
+          playerOverworld_checkIfEnemiesDead();
+        }
+        break;
+
+      case 10:
+        if (enemyEncounter.monsterId < 1) {
+          uiConsole_queueMessage(ultimaStrings[153]);
+        } else {
+          uiConsole_queueMessageFormat("^T1%.27s", ultimaStrings[159]);
+
+          enemyEncounter.monsterId = -1;
+          renderEnemy = false;
+        }
+        break;
+        
+      default:
+        uiConsole_queueMessage(ultimaStrings[160]);
+        uiConsole_queueMessage(ultimaStrings[161]);
+        audio_playAlert(1);
+        break;
+    }
+      
+    lagTime = 4.0f;
+    return true;
+  }
+  return false;
+}
+
+void playerOverworld_updateGeometry() {
+  if (playerOverworldGeometry.indexCount > 0){
+    geometry_free(&playerOverworldGeometry);
+  }
+
+  float tx1 = player.vehicle * OS_TILE_WIDTH / (float) ultimaAssets.overworldTiles.width;
+  float tx2 = tx1 + OS_TILE_WIDTH / (float) ultimaAssets.overworldTiles.width;
+  geometry_setSprite(&playerOverworldGeometry, OS_TILE_WIDTH, OS_TILE_HEIGHT, tx1, 0.5f, tx2, 1.0f);
+}
+
+static bool playerOverworld_updateBoard() {
+  if (input.b == 1) {
+    input.b = 2;
+    waitingTime = 0.0f;
+    
+    if (player.vehicle != 0) {
+      uiConsole_addMessage(ultimaStrings[136]);
+      uiConsole_addMessage(ultimaStrings[137]);
+      audio_playAlert(1);
+      return true;
+    }
+
+    int vehicleTile = vehiclesMap[player.ty][player.tx];
+    if (vehicleTile == 0 || vehicleTile > 7) {
+      uiConsole_addMessage(ultimaStrings[138]);
+      audio_playAlert(1);
+      return true;
+    }
+
+    if (vehicleTile == 1) {
+      player.vehicle = 1;
+      uiConsole_addMessage(ultimaStrings[139]);
+    } else if (vehicleTile == 2) {
+      player.vehicle = 2;
+      uiConsole_addMessage(ultimaStrings[140]);
+    } else if (vehicleTile == 3 || vehicleTile == 4 || vehicleTile == 5) {
+      player.vehicle = vehicleTile;
+      uiConsole_addMessageFormat("%.15s%.15s", ultimaStrings[144], vehicleNames[vehicleTile]);
+    } else if (vehicleTile == 7) {
+      uiConsole_addMessage(ultimaStrings[141]);
+      
+      if (player.gems[0] == 0 && player.gems[1] == 0 && player.gems[2] == 0 && player.gems[3] == 0) {
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[261]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[262]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[263]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[264]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[265]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[266]);
+        return true;
+      }
+      
+      if (player.gems[0] == 0 || player.gems[1] == 0 || player.gems[2] == 0 || player.gems[3] == 0) {
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[261]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[262]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[263]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[267]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[268]);
+        uiConsole_queueMessageFormat("^T1%s", ultimaStrings[269]);
+        return true;
+      }
+
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1242]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1243]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1244]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1245]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1246]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1247]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1248]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1249]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1250]);
+      uiConsole_queueMessageFormat("^T1%s", "    ");
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1251]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1252]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1253]);
+      uiConsole_queueMessageFormat("^T1%s", ultimaStrings[1254]);
+      
+      player.vehicle = 7;
+      playerState = PLAYER_STATE_TIME_MACHINE;
+
+      vmExecuter_createSceneTransition(1.0f, &sceneMondain);
+    } else if (vehicleTile == 6) {
+      player.vehicle = 6;
+      uiConsole_addMessage(ultimaStrings[142]);
+      vmExecuter_createWait(1);
+      playerState = PLAYER_STATE_SHUTTLE_COUNTDOWN;
+      memset(liftoffCountdownString, 0, sizeof(liftoffCountdownString));
+      liftoffCountdown = 11;
+    }
+
+    vehiclesMap[player.ty][player.tx] = 0;
+    playerOverworld_updateGeometry();
+
+    return true;
+  }
+
+  return false;
+}
+
+static bool playerOverworld_updateExit() {
+  if (input.x == 1) {
+    input.x = 2;
+    waitingTime = 0.0f;
+
+    if (player.vehicle == 0) {
+      uiConsole_addMessage(ultimaStrings[233]);
+      audio_playAlert(1);
+      return true;
+    }
+
+    int tile = (worldMap_getPlayerTile() >> 4) & 0xFF;
+    int vehicleTile = vehiclesMap[player.ty][player.tx];
+    if (tile > 2 || vehicleTile > 0) {
+      uiConsole_addMessage(ultimaStrings[234]);
+      uiConsole_addMessage(ultimaStrings[235]);
+      return true;
+    }
+
+    vehiclesMap[player.ty][player.tx] = player.vehicle;
+    
+    if (player.vehicle == 1 || player.vehicle == 2) {
+      uiConsole_addMessage(ultimaStrings[239]);
+    } else {
+      uiConsole_addMessage(ultimaStrings[240]);
+    }
+
+    player.vehicle = 0;
+    playerOverworld_updateGeometry();
+
+    return true;
+  
+  }
+  return false;
+}
+
+static bool playerOverworld_updateFiring() {
+  if (input.f == 1) {
+    input.f = 2;
+    waitingTime = 0.0f;
+    lagTime = 1.5f;
+
+    if (player.vehicle == 4) {
+      uiConsole_replaceLastMessageFormat("%.15s%.15s", ultimaStrings[98], ultimaStrings[166]);
+    } else if (player.vehicle == 5) {
+      uiConsole_replaceLastMessageFormat("%.15s%.15s", ultimaStrings[98], ultimaStrings[167]);
+    } else {
+      uiConsole_replaceLastMessageFormat("%.15s%.15s", ultimaStrings[98], ultimaStrings[168]);
+      return true;
+    }
+
+    if (enemyEncounter.monsterId < 6 || enemyEncounter.monsterId > 20) {
+      uiConsole_addMessageFormat("%.15s%.15s", ultimaStrings[98], ultimaStrings[169]);
+      return true;
+    }
+
+    uiConsole_queueMessageFormat("%.15s%.15s", ultimaStrings[170], enemyDefinitions[enemyEncounter.monsterId].name);
+
+    if (rand01() > 0.8f) {
+      uiConsole_queueMessage(ultimaStrings[171]);
+      return true;
+    }
+
+    int damage = (int)(rand01() * 10 * player.vehicle) + 30;
+    enemyEncounter.hp -= damage;
+
+    uiConsole_queueMessageFormat("%.18s%d", ultimaStrings[172], damage);
+    audio_playAlert(3);
+
+    playerOverworld_checkIfEnemiesDead();
+
+    return true;
+  }
+
+  return false;
+}
+
+static void playerOverworld_enterSignpost() {
+  int tx = (int)(player.tx % OS_BTERRA_MAP_WIDTH);
+  int ty = (int)(player.ty % OS_BTERRA_MAP_HEIGHT);
+  int world = ((int)player.ty / OS_BTERRA_MAP_HEIGHT) * 2 + ((int)player.tx / OS_BTERRA_MAP_WIDTH);
+  int tileType = ultimaAssets.bterraMaps[world][ty][tx] & 0x0F;
+
+  uiConsole_queueMessage(placesNames[world * 20 + tileType + 3]);
+
+  if (player.quests[world * 2 + tileType] > 0 && tileType == 0) {
+    player.quests[world * 2 + tileType] = -1;
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[271]);
+    audio_playAlert(2);
+  }
+
+  int postNumber = world * 2 + tileType + 1;
+  int statToIncrease = -1;
+  if (postNumber == 1) {
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[272]);
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[273]);
+    statToIncrease = 6;
+  } else if (postNumber == 2) {
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[274]);
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[275]);
+    statToIncrease = 2;
+  } else if (postNumber == 3) {
+    for (int i=0;i<8;i++) {
+      uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[276 + i]);
+    }
+    statToIncrease = 5;
+  } else if (postNumber == 4) {
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[284]);
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[285]);
+
+    if (lastSignpost == world * 2 + tileType) {
+      uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[286]);
+      return;
+    }
+
+    lastSignpost = world * 2 + tileType;
+
+    for (int i=0;i<OS_WEAPONS_COUNT;i++) {
+      if (player.weapons[i] == 0) {
+        uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[288]);
+        uiConsole_queueMessageFormat("^T2%.27s", weaponNames[i + 1]);
+        uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[289]);
+
+        player.weapons[i] = 1;
+        return;
+      }
+    }
+
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[286]);
+    return;
+  } else if (postNumber == 5) {
+    for (int i=0;i<5;i++){
+      uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[290 + i]);
+    }
+    statToIncrease = 3;
+  } else if (postNumber == 6) {
+    for (int i=0;i<3;i++){
+      uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[295 + i]);
+    }
+    statToIncrease = 4;
+  } else if (postNumber == 7) {
+    for (int i=0;i<2;i++){
+      uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[298 + i]);
+    }
+    statToIncrease = 3;
+  } else if (postNumber == 8) {
+    for (int i=0;i<2;i++){
+      uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[300 + i]);
+    }
+    statToIncrease = 3;
+  }
+
+  if (lastSignpost == world * 2 + tileType) {
+    uiConsole_queueMessageFormat("^T2%.27s", ultimaStrings[286]);
+    return;
+  }
+
+  lastSignpost = world * 2 + tileType;
+  int statIncrase = (int)((99 - *(&player.health + statToIncrease)) / 10);
+  uiConsole_queueMessageFormat("^T2%.15s+%d", statsNames[statToIncrease], statIncrase);
+  (*(&player.health + statToIncrease)) += statIncrase;
+
+  uiConsole_updateStats();
+}
+
+static bool playerOverworld_updateEnter() {
+  if (input.e == 1) {
+    input.e = 2;
+    waitingTime = 0.0f;
+
+    int tx = (int)(player.tx % OS_BTERRA_MAP_WIDTH);
+    int ty = (int)(player.ty % OS_BTERRA_MAP_HEIGHT);
+    int world = ((int)player.ty / OS_BTERRA_MAP_HEIGHT) * 2 + ((int)player.tx / OS_BTERRA_MAP_WIDTH);
+    int tile = (ultimaAssets.bterraMaps[world][ty][tx] >> 4) & 0x0F;
+    int tileType = ultimaAssets.bterraMaps[world][ty][tx] & 0x0F;
+
+    if (tile < 4 || tile > 7) {
+      uiConsole_replaceLastMessageFormat("%.10s%.10s", ultimaStrings[98], ultimaStrings[163]);
+      uiConsole_addMessage(ultimaStrings[164]);
+      audio_playAlert(1);
+      return true;
+    }
+
+    uiConsole_replaceLastMessageFormat("%.15s%.15s", ultimaStrings[98], ultimaStrings[163]);
+
+    if (tile == 4) {
+      uiConsole_queueMessageFormat(placesNames[world * 20 + tileType + 1]);
+      uiConsole_queueMessageFormat(" ");
+      vmExecuter_createSceneTransition(1.5f, &sceneCastle);
+    }else if (tile == 5) {
+      playerOverworld_enterSignpost();
+
+      return true;
+    } else if (tile == 6) {
+      uiConsole_queueMessageFormat("%s%s", ultimaStrings[180], placesNames[world * 20 + tileType + 13]);
+      uiConsole_queueMessageFormat(" ");
+      vmExecuter_createSceneTransition(1.5f, &sceneTown);
+      
+      return true;
+    } else if (tile == 7) {
+      player.dungeonDepth = 1;
+      uiConsole_queueMessageFormat(placesNames[world * 20 + tileType + 5]);
+      uiConsole_queueMessageFormat(" ");
+      vmExecuter_createSceneTransition(1.5f, &sceneDungeon);
+      
+      return true;
+    }
+  }
+  return false;
+}
+
+static void playerOverworld_updateLiftoffCountdown() {
+  if (liftoffCountdown == 11) {
+    uiConsole_queueMessage(" ");
+    uiConsole_queueMessage(ultimaStrings[846]);
+    uiConsole_queueMessage(" ");
+    keyRepeatDelay = 0.5f;
+    liftoffCountdown--;
+    return;
+  }
+
+  char countdown[4] = {0};
+  snprintf(countdown, sizeof(countdown), "%d-", liftoffCountdown--);
+  strcat(liftoffCountdownString, countdown);
+  uiConsole_replaceLastMessage(liftoffCountdownString);
+  keyRepeatDelay = 1;
+
+  if (liftoffCountdown == 0) {
+    vmExecuter_createSceneTransition(1, &sceneSpace);
+  }
+}
+
+void playerOverworld_setCameraFollow() {
+  camera_setPosition3f(&camera, (player.tx + 1) * OS_TILE_WIDTH - OS_SCREEN_WIDTH / 2, (player.ty + 1) * OS_TILE_HEIGHT - OS_SCREEN_HEIGHT / 2, 10);
+}
+
+bool playerOverworld_update(float deltaTime) {
+  bool acted = false;
+
+  if (keyRepeatDelay <= 0) {
+    switch (playerState) {
+      case PLAYER_STATE_IDLE:
+        if (playerCommons_updateZtats()) { acted = true; } else
+        if (playerCommons_updateWait()) { acted = true; } else
+        if (playerCommons_updateReady()) { acted = true; } else
+        if (playerOverworld_updateSave()) { acted = true; } else 
+        if (playerOverworld_updateInfo()) { acted = true; } else
+        if (playerOverworld_updateGet()) { acted = true; } else
+        if (playerOverworld_updateOpen()) { acted = true; } else
+        if (playerOverworld_updateDrop()) { acted = true; } else
+        if (playerOverworld_updateAttack()) { acted = true; } else
+        if (playerOverwolrd_updateCast()) { acted = true; } else
+        if (playerOverworld_updateBoard()) { acted = true; } else
+        if (playerOverworld_updateExit()) { acted = true; } else
+        if (playerOverworld_updateFiring()) { acted = true; } else
+        if (playerOverworld_updateEnter()) { acted = true; } else
+        if (playerOverworld_updateMovement(deltaTime)) { acted = true; }
+        break;
+      case PLAYER_STATE_READY_TYPE:
+        if (playerCommons_updateReady()) { acted = true; }
+        break;
+      case PLAYER_STATE_SHUTTLE_COUNTDOWN:
+        playerOverworld_updateLiftoffCountdown();
+      default:
+        break;
+    }
+  } else {
+    keyRepeatDelay -= deltaTime;
+    if (keyRepeatDelay < 0) {
+      keyRepeatDelay = 0;
+    }
+  }
+
+  if (acted) {
+    player.time += 0.6f;
+  }
+
+  return acted;
+}
+
+void playerOverworld_render() {
+  matrix4_setPosition(transformationMatrix, player.tx * OS_TILE_WIDTH, player.ty * OS_TILE_HEIGHT, 2);
+  float *viewMatrix = camera_getViewProjectionMatrix(&camera);
+
+  geometry_render(&playerOverworldGeometry, ultimaAssets.overworldTiles.textureId, transformationMatrix, viewMatrix);
+
+  if (renderEnemy && enemyGeometry != NULL) {
+    geometry_render(enemyGeometry, ultimaAssets.enemySprites.textureId, enemyTransformationMatrix, viewMatrix);
+  }
+}
+
+void playerOverworld_free() {
+  geometry_free(&playerOverworldGeometry);
+  if (enemyGeometry != NULL) {
+    geometry_free(enemyGeometry);
+    free(enemyGeometry);
+    enemyGeometry = NULL;
+  }
+}

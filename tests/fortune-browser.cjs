@@ -3,7 +3,7 @@ const{chromium}=require('playwright'),assert=require('node:assert/strict'),path=
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,headless:true});
  for(const viewport of [{width:1280,height:720},{width:844,height:390},{width:390,height:844}]){
   const page=await browser.newPage({viewport,hasTouch:viewport.width<1000}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('file://'+path.resolve(__dirname,'../play.html'));await page.screenshot({path:'/tmp/aeon-fortune-intro-'+viewport.width+'.png'});
+  await page.goto('file://'+path.resolve(__dirname,'../legacy/index.html'));await page.screenshot({path:'/tmp/aeon-fortune-intro-'+viewport.width+'.png'});
   await page.click('#choose-direct');
   await page.locator('#patrons img').evaluateAll(async imgs=>{await Promise.all(imgs.map(img=>img.decode()));});
   assert.equal(await page.locator('#patrons img').count(),5);

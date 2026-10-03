@@ -2,7 +2,7 @@ const {chromium}=require('playwright'),path=require('node:path'),assert=require(
 (async()=>{for(const viewport of [{width:1920,height:1080},{width:1280,height:720},{width:844,height:390},{width:390,height:844}]){
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,headless:true}),page=await browser.newPage({viewport,hasTouch:viewport.width<1000});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('file://'+path.resolve(__dirname,'../play.html'));
+ await page.goto('file://'+path.resolve(__dirname,'../legacy/index.html'));
  assert(await page.locator('#welcome').isVisible());await page.click('#choose-direct');assert.equal(await page.locator('[data-patron]').count(),5);
  await page.locator('[data-patron="jophiel"]').click();await page.fill('#seed','BROWSER-TEST');await page.click('#begin');
  assert.equal(await page.evaluate(()=>run.patron),'jophiel');

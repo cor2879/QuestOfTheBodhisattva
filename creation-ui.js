@@ -31,7 +31,7 @@ function renderDirect(){
 function select(id){
  if(!A.MONADS[id])return;selection=id;method='direct';
  for(const b of $('patrons').children){const active=b.dataset.monad===id;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',active);}
- const p=A.MONADS[id];$('selected-description').textContent=p.power+': '+p.description+' Vitality '+p.hp+' · strike '+p.attack+'.';
+ const p=A.MONADS[id];$('selected-description').textContent=p.native?p.description:p.power+': '+p.description+' Vitality '+p.hp+' · strike '+p.attack+'.';
 }
 function showMode(next){
  mode=next;for(const id of ['intro','question','reveal','direct'])$('reading-'+id).hidden=id!==next;

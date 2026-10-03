@@ -2,7 +2,7 @@ const{chromium}=require('playwright'),assert=require('node:assert/strict'),path=
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,headless:true});
  const page=await browser.newPage({viewport:{width:1280,height:720}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('file://'+path.resolve(__dirname,'../play.html'));
+ await page.goto('file://'+path.resolve(__dirname,'../legacy/index.html'));
  for(const [patron,seed]of [['samael','EXPEDITION-2'],['raphael','EXPEDITION-0']]){
   if(!await page.locator('#welcome').isVisible()){await page.click('#again');}
   await page.click('#choose-direct');

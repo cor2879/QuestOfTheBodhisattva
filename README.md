@@ -1,175 +1,140 @@
-# Quest of the Bodhisattva — The Buried Sanctuary
+# Quest of the Bodhisattva — The Lantern Coast
 
-A playable browser RPG prototype by David Cole, set in The Lion of God universe. Play an Archangel
-Bodhisattva exploring cyclopean ruins where captive souls sustain a cosmic
-horror. This is original fantasy inspired by esoteric traditions.
-
+An original browser RPG by David Cole, set in The Lion of God universe.
 Repository: https://github.com/cor2879/QuestOfTheBodhisattva
+
+## Chapter 0.3: Open Sosaria migration
+
+The primary browser build now runs Open Sosaria's native C overworld systems,
+compiled to WebAssembly/WebGL 2. The Fortune Teller's four-choice reading
+reveals one of five Monads and initializes a native player on the Lantern Coast.
+
+This milestone establishes the engine handoff, overworld travel, original
+terrain, and native character state. Town interiors, dungeon exploration,
+encounters, active Monad powers, and party combat have not yet been adapted.
+Haven, the shrine, and the Buried Sanctuary have map markers with introductory
+messages. Their doors are not presented as completed areas.
+
+The earlier five-floor JavaScript dungeon remains playable at
+**legacy/index.html**, with its separate save format and original rules.
+Its powers and encounter mechanics are not yet available in the native build.
 
 ## Play
 
-Run `python3 tools/build.py`, then open **play.html** in a modern browser. It is a single standalone file, works
-offline, and needs neither a server nor a download of external assets.
+Open **index.html** from a local checkout or static host. Its WebAssembly bytes
+are embedded in native/web/quest.js, so it does not fetch a separate Wasm file.
+WebGL 2 must be available. No Ultima disks or extracted game assets are needed.
 
-Begin with the Fortune Teller’s Fivefold Reading, or choose Ariel, Samael,
-Raphael, Jophiel, or Lilith directly. Each has different starting vitality,
-strike strength, a Monad power, and interpretations of recovered lore. World
-seeds recreate initial dungeon geometry, encounters, and shrine offers. Use
-**EXPEDITION-2** for a seed on which complete expeditions were verified with all
-five Monads, or choose a new random seed.
+For the standalone downloadable build, open **play.html**. It embeds the card
+portraits, UI, and native runtime and works offline without a server.
 
-Explore five strata. Find the astral binding, free its witness, recover an
-inscription, and choose a shrine relic before finding the descending stair.
-You may descend without clearing every encounter. On the final floor, defeat
-Oru or invoke the remembered name at the threshold with at least three liberated
-witnesses and three lore fragments from this expedition.
+- Arrows / WASD or the touch pad: move one step.
+- E / Enter or Interact: read the current location's introduction.
+- Space or Wait: spend a waiting turn.
+- Save / Resume / Export / Import: keep a native journey and its character reading.
+- New reading: begin another journey, or cancel to keep playing.
 
-Death ends the expedition. Recovered lore remains in the codex; it does not
-grant permanent combat bonuses or satisfy another expedition's ending condition.
+Haven lies three steps east of the starting point (40,40). The shrine is at
+(47,35), and the sanctuary at (51,47). Grass and forest are passable. Water
+requires a vessel, and mountains block travel. Vehicles are not purchasable
+in this milestone. Nothing advances while idle or while the ceremony is open.
 
-## The Fortune Teller · Chapter 0.2
+Each successful walking step consumes 0.5 food and advances native time by 1.
+Waiting consumes 0.05 food and advances time by 0.5. Failed movement consumes
+neither. Exhausted journeys can still be saved and resumed; start another
+reading to travel again. The world currently has a fixed authored layout;
+the Fortune Teller's shuffled reading supplies the ceremony's variation.
 
-The shuffled five-card deck presents four dilemmas. Choose an action; the
-Monad names remain concealed until the reveal. Ten pairings each have two
-scenario variants, selected by the reading’s seed. The choices form an
-elimination bracket: every Monad can reach the final card, and no answer is
-scored as right or wrong. The shuffled bracket also affects the result.
+## Native starting characters
 
-Undo the previous choice, draw another reading, or choose directly. Give your
-character a name and accept the reveal to enter the existing five-floor dungeon.
-Your name and reading are included in exported saves; earlier AEON DESCENT
-saves still load. Browser storage retains the earlier keys for continuity.
-The reading seed controls the ceremony, while the world seed controls the dungeon.
+Each Monad starts with 100 vitality, 100 food, 50 gold, and one experience.
+Attributes are stored in Open Sosaria's Player structure.
 
-This is the first character-building chapter, not yet the Ultima-scale campaign.
-The authored overworld, settlements, and quest conversations remain future work.
-The card deck and scenario data are separate from dungeon rules for iteration.
+| Monad | Strength | Agility | Stamina | Charisma | Wisdom | Intelligence |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ariel | 14 | 16 | 20 | 14 | 18 | 14 |
+| Samael | 20 | 18 | 16 | 14 | 14 | 16 |
+| Raphael | 14 | 14 | 20 | 16 | 18 | 18 |
+| Jophiel | 12 | 16 | 14 | 18 | 18 | 20 |
+| Lilith | 14 | 20 | 14 | 18 | 16 | 16 |
 
-## Controls
+The UI retains your 24-character name and reading. The upstream native player
+name field retains its 15-byte limit. Native and earlier dungeon saves are
+separate; importing a dungeon save into this milestone is rejected.
 
-| Input | Action |
-| --- | --- |
-| Arrows / WASD | Move; bump a horror to strike |
-| E / Enter | Interact on your tile or beside it |
-| X | Strike an adjacent horror |
-| F | Monad power, costing 4 light |
-| H | Drink a restoring tonic |
-| Space | Wait one turn |
-| Escape | Open help; the world waits while a dialog is open |
-| Mouse / touch | Use the on-screen controls |
-| Click / tap map | Move into an adjacent tile, or inspect a visible distant tile |
+## Source and build
 
-Successful moves and actions give nearby enemies one turn. Blocked movement,
-failed actions, inspection, and opening help/codex do not advance time. Reading
-an inscription consumes its interaction turn, then pauses for the lore panel.
-Choosing a shrine relic consumes a turn after restoring vitality and light.
-Enemies do not move on a real-time timer.
-
-## Monads and resources
-
-| Monad | Vitality / strike | Power |
-| --- | --- | --- |
-| Ariel | 42 / 7 | Verdant Ward restores 5 vitality and halves incoming harm within two steps of the ward for five turns |
-| Samael | 38 / 9 | Severance destroys a visible binding within five steps, or burns the nearest visible horror for 16 harm through its ward |
-| Raphael | 46 / 6 | Restoring Light restores 15 vitality, clears dread, and shields the next enemy turn |
-| Jophiel | 36 / 8 | Revelation explores nearby terrain, stuns visible foes within five steps for two turns, and adds 8 harm to the next strike |
-| Lilith | 40 / 8 | Veil of Sovereignty clears dread, shields two enemy turns including the casting turn, and adds 8 harm to the next strike |
-
-Living bindings halve strike harm to warded horrors. Liberating a witness
-restores 6 vitality and 4 light; each freed witness also reduces the final
-horror's vitality. Defeated horrors restore 3 light; sparks restore 5. Tonics
-restore 18 vitality and clear dread. Every two dread reduce strike harm by one.
-Descending restores 8 vitality and 4 light and reduces dread by two.
-
-Each shrine offers three seeded choices from six relics: strike strength,
-maximum vitality, maximum light, protection, sight, or light recovery.
-Relic bonuses can stack. The named Monad gift is a narrative starting item;
-starting statistics and the Monad power supply its mechanical identity.
-
-## Saves
-
-The game autosaves after actions when browser storage is available. Save and
-Resume are also exposed. Export/import JSON saves to move an expedition between
-browsers or file locations. Invalid imports leave the current run intact.
-Starting a new expedition replaces the browser's current run, while retaining
-the codex. Export first if you want to keep several expeditions.
-
-## Architecture
-
-This is a separate project; Galactic Star Fleet is unchanged. The new game's
-rules and renderer are JavaScript and Canvas 2D, rather than the earlier native
-Open Sosaria/WebAssembly engine. It retains the browser-first approach and
-responsive side-panel arrangement while keeping the procedural rules easy to
-change. There are no external runtime dependencies or network requests. Card portraits
-are embedded in play.html. Dungeon pixel art is drawn by the renderer. Artwork
-sources and generation prompts are documented in assets/ARTWORK.md.
-
-- engine.js: deterministic generation, visibility, turn resolution, enemies,
-  patrons, relics, objectives, endings, and save validation.
-- fortune.js: seeded five-card reading and twenty scenario variants.
-- creation-ui.js: illustrated ceremony, reveal, direct choice, and naming.
-- game.js: rendering, keyboard/touch input, lore panels,
-  browser persistence, and import/export.
-- style.css and template.html: responsive interface.
-- play.html: generated standalone deliverable.
-
-The build also emits **index.html** and **art.js** for static hosting with
-the separate source and asset files. The repository includes that web entry
-point; play.html is generated locally to avoid duplicating all portrait bytes
-in Git. GitHub Pages can serve index.html if enabled for this repository.
-
-Rebuild after source edits:
+Install and activate Emscripten (this checkpoint uses 6.0.10), then run:
 
     python3 tools/build.py
 
-Patrons are defined in PATRONS, with their powers in the power resolver and
-their narrative perspectives in PATRON_INSIGHTS. Adding a patron requires
-entries in both definitions and an implemented power; this is not yet a
-generic power scripting system.
+That compiles native/web/quest.js, writes index.html, and embeds an offline
+play.html. The generated native runtime is tracked for immediate play;
+play.html is ignored because it duplicates all portrait bytes.
+
+The older prototype can be rebuilt separately with:
+
+    python3 tools/build-legacy.py
+
+- native/opensosaria/src: upstream source, including retained unported systems.
+- native/quest.c: original content/data loader, native player initialization,
+  browser API, and frame loop.
+- native/Makefile: explicit sources entering the browser build.
+- native-host.js: Fortune Teller handoff, controls, native stats, and saves.
+- monads.js: ceremony metadata and deterministic reading RNG, not world rules.
+- fortune.js / creation-ui.js: illustrated reading and selection UI.
+- assets: five card portraits and original reference artwork.
+- legacy/index.html and engine.js/game.js: previous dungeon prototype.
+
+The active world uses upstream worldMap.c for map geometry and rendering,
+playerOverworld.c for movement/collision/camera/player rendering, and player.c
+for resource/time rules and the Player structure. The original disk loader,
+Ultima strings, maps, enemy data, font/audio binaries, and original-game scenes
+are excluded from the compiled milestone. An original atlas and original map
+tables supply the native interfaces instead.
+
+## Provenance and local engine changes
+
+Open Sosaria upstream: https://github.com/delcodigo/open-sosaria
+Pinned base: 578828dc506dc9d3dd6931783ab66e1849642bad
+MIT license: native/opensosaria/LICENSE
+
+The upstream source is vendored at a pinned checkpoint; this repository is
+not represented as a GitHub fork. Local adaptations include WebGL/GLES headers,
+shaders, the browser frame loop, original content loading, a declaration exposing
+native movement, and wrapped destination lookup before indexing region and
+vehicle tables. That lookup fixes negative and cross-region coordinate access.
+
+The new tile atlas is generated from original small pixel patterns in quest.c.
+It is a placeholder art pass. Card provenance and prompts are in
+assets/ARTWORK.md. No fan texture pack has been added.
 
 ## Verification
 
-Run:
+With Playwright/Chromium installed:
 
-    node tests/fortune.cjs
+    node tests/native-browser.cjs
+
+CHROMIUM_EXECUTABLE can select a browser binary. Native browser tests cover a
+complete reading, all five character presets, native movement and food/time
+costs, location introductions, both region seams, terrain blocking, dialogs
+preventing actions, saves across reload, invalid imports preserving the current
+journey, exhausted saves, and desktop/landscape/portrait layouts. Both the web
+entry and standalone HTML are exercised. Physical Safari/iOS testing remains.
+
+Earlier dungeon checks remain available:
+
     node tests/engine.cjs
+    node tests/fortune.cjs
     node tests/expedition.cjs
-
-Reading checks cover 1,920 complete paths, all five outcomes and twenty
-dilemmas, undo, named character saves, and Lilith’s shield/strike mechanics.
-Browser reading checks exercise every reveal at desktop, landscape touch, and
-portrait touch sizes, decode all five illustrations, and resume a named character.
-
-Engine checks cover 1,500 generated floors, connected routes, unique encounter
-placements, seeded reproducibility, patron powers, action costs, bindings,
-relics, both endings, death, and save round trips. Complete five-floor simulated
-expeditions pass with all five Monads on EXPEDITION-2; a Raphael expedition on
-EXPEDITION-0 also verifies liberation. These are deterministic regression
-playthroughs, not proof that every seed is equally balanced.
-
-Install Playwright and its Chromium browser, then:
-
-    node tests/fortune-browser.cjs
     node tests/browser.cjs
+    node tests/fortune-browser.cjs
     node tests/journey-browser.cjs
 
-CHROMIUM_EXECUTABLE optionally selects a Chromium binary.
-Browser checks cover 1920×1080, 1280×720, 844×390 landscape touch, and 390×844
-portrait touch, keyboard/pointer controls, dialogs blocking movement,
-save/reload/import, invalid imports preserving the run, and overflow.
-Wide layouts keep the game inside the viewport with no page scrolling.
-Portrait layouts keep the map visible while scrolling through controls/tools.
-Full browser expeditions verify judgment and liberation, codex persistence,
-save export, and resuming a completed expedition.
+## Next native milestones
 
-## Prototype scope
-
-Implemented: one five-floor biome, five Monads, six ordinary horror forms
-plus Oru, bindings, one witness/inscription/shrine per floor, six relics,
-consumables, fog of discovery, two endings, and a persistent lore codex.
-
-Not yet implemented: an overworld, towns, additional biomes or Monads, equipment slots, dialogue
-choices beyond relic selection, sound/music, animated artwork, accessibility
-for playing the tile map entirely through a screen reader, or a broad campaign.
-Difficulty remains an initial pass. Physical iOS/Safari testing remains to be
-done; the touch checks use Chromium emulation.
+1. Adapt a town interior with named conversations and a keeper quest.
+2. Replace the native item/spell/data tables with original definitions.
+3. Adapt the dungeon and encounter systems into the same native save/world state.
+4. Add active Monad abilities and consequences to the persistent world.
+5. Extend the single-character foundation into party/tactical combat.
