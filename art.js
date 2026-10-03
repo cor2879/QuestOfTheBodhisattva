@@ -1,0 +1,1 @@
+globalThis.MONAD_ART={"samael": {"src": "assets/samael.png"}, "raphael": {"src": "assets/raphael.png"}, "jophiel": {"src": "assets/jophiel.png"}, "ariel": {"src": "assets/ariel.png"}, "lilith": {"src": "assets/lilith.png"}};

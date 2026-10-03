@@ -53,3 +53,11 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Browser project development / generated offline package
+node_modules/
+__pycache__/
+*.pyc
+play.html
+manifest.json
+*.zip
