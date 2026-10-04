@@ -77,6 +77,33 @@ neither. Exhausted journeys can still be saved and resumed; start another
 reading to travel again. The world currently has a fixed authored layout;
 the Fortune Teller's shuffled reading supplies the ceremony's variation.
 
+## Automatic builds and phone testing
+
+GitHub Actions rebuilds the C/WebAssembly game with Emscripten 6.0.10 on each
+push to main. It runs the Fortune Teller, overworld, Haven, sanctuary, and
+project-prefix browser checks before publishing the staged site to GitHub Pages.
+Pull requests run the same checks without deploying. The Actions tab also offers
+**Run workflow** for a manual rebuild. Each successful build retains an offline
+play.html artifact for fourteen days.
+
+Live test link: https://cor2879.github.io/QuestOfTheBodhisattva/
+Workflow: .github/workflows/browser.yml
+
+Repository Settings → Pages → Build and deployment → Source must be
+**GitHub Actions**. A failed build leaves the previous deployed game available.
+Open the live link on your phone; native touch buttons are already included.
+Browser saves belong to the device/browser/site where they were created. Use
+Export/Import to transfer a character from a desktop or offline build.
+
+The deployed build-info.json records its commit and workflow run. Only browser
+runtime files and the five card portraits are staged; source and reference
+artwork remain in the repository. To check staging locally:
+
+    npm ci
+    npx playwright install chromium
+    python3 tools/stage-pages.py
+    npm run test:pages
+
 ## Native starting characters
 
 Each Monad starts with 100 vitality, 100 food, 50 gold, and one experience.
