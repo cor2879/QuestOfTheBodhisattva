@@ -18,6 +18,8 @@
 #include "entities/ui/uiConsole.h"
 #include "data/player.h"
 #include "data/enemy.h"
+#include "entities/playerTown.h"
+#include "town.h"
 UltimaAssets ultimaAssets;
 char ultimaStrings[1500][41];
 unsigned char vehiclesMap[OS_BTERRA_MAP_WIDTH*2][OS_BTERRA_MAP_HEIGHT*2];
@@ -29,11 +31,13 @@ char *vehicleNames[]={"Foot","Steed","Cart","Raft","Ship","Sky vessel","Shuttle"
 static int monad=-1,turns=0;
 static char message[256]="The Fortune Teller awaits your choice.";
 static const int attributes[5][6]={{14,16,20,14,18,14},{20,18,16,14,14,16},{14,14,20,16,18,18},{12,16,14,18,18,20},{14,20,14,18,16,16}};
-static void note(const char *s){snprintf(message,sizeof(message),"%s",s);}
+void quest_note(const char *s){snprintf(message,sizeof(message),"%s",s);}
 void uiConsole_updateStats(void){}
-void uiConsole_addMessage(const char*s){note(s);}
-void uiConsole_replaceLastMessage(const char*s){note(s);}
-void uiConsole_queueMessage(const char*s){note(s);}
+void uiConsole_addMessage(const char*s){quest_note(s);}
+void uiConsole_replaceLastMessage(const char*s){quest_note(s);}
+void uiConsole_replaceLastMessageFormat(const char*f,...){va_list a;va_start(a,f);vsnprintf(message,sizeof(message),f,a);va_end(a);}
+void uiConsole_queueMessageFormat(const char*f,...){va_list a;va_start(a,f);vsnprintf(message,sizeof(message),f,a);va_end(a);}
+void uiConsole_queueMessage(const char*s){quest_note(s);}
 void uiConsole_addMessageFormat(const char*f,...){va_list a;va_start(a,f);vsnprintf(message,sizeof(message),f,a);va_end(a);}
 void audio_playAlert(int n){(void)n;}
 /* Empty encounters for this integration milestone; full combat will be adapted next. */
@@ -75,31 +79,53 @@ static void world_create(void){
 }
 EMSCRIPTEN_KEEPALIVE int quest_start(int id,const char *name){
  if(id<0||id>=5)return 0;
+ if(quest_location)playerTown_free();quest_location=0;quest_conversation=-1;quest_stage=quest_clue=quest_blessing=quest_supplies=quest_resolution=quest_tonics=0;
  memset(&player,0,sizeof(player));monad=id;turns=0;player.health=100;player.food=100;player.gold=50;player.experience=1;player.tx=40;player.ty=40;player.type=1;
  snprintf(player.name,sizeof(player.name),"%.15s",name);
  player.strength=attributes[id][0];player.agility=attributes[id][1];player.stamina=attributes[id][2];player.charisma=attributes[id][3];player.wisdom=attributes[id][4];player.intelligence=attributes[id][5];player.weapons[0]=1;
- playerOverworld_init();note("The Lantern Coast. Haven lies three steps east. Seek its keeper.");return 1;
+ playerOverworld_init();quest_note("The Lantern Coast. Haven lies three steps east. Seek its keeper.");return 1;
 }
+EMSCRIPTEN_KEEPALIVE int quest_can_walk(int x,int y){if(quest_location)return haven_valid_position(x,y);if(x<0||x>=172||y<0||y>=172)return 0;int t=(worldMap_getTileAt(x,y)>>4)&15;return t!=0&&t!=3;}
 EMSCRIPTEN_KEEPALIVE int quest_action(int direction){
- if(monad<0||!player_isAlive())return 0;
- if(direction==5){player_waitPenalty();if(player.food<0)player.food=0;turns++;note("You wait and attend to the world.");return 1;}
- if(direction==6){int t=(worldMap_getPlayerTile()>>4)&15;note(t==6?"Haven's keeper: The sanctuary beyond the grove has fallen silent. Our town interior is still being prepared.":t==5?"Five lights share one source. The shrine waits for your remembrance.":t==7?"The Buried Sanctuary. Its native dungeon passage is the next milestone.":"Travel east to Haven, northeast to the shrine, or southeast to the sanctuary.");return 0;}
+ if(monad<0||quest_conversation>=0)return 0;
+ if(!player_isAlive()&&direction!=6&&direction!=7)return 0;
+ if(direction==7){if(!quest_tonics||player.health>=100){quest_note("No tonic is needed, or your pouch is empty.");return 0;}quest_tonics--;player.health=(player.health+25>100)?100:player.health+25;player_waitPenalty();if(player.food<0)player.food=0;turns++;quest_note("A tonic restores twenty-five vitality.");return 1;}
+ if(direction==5){player_waitPenalty();if(player.food<0)player.food=0;turns++;quest_note("You wait and attend to the world.");return 1;}
+ if(direction==6){
+  if(quest_location){haven_interact();return 0;}
+  int t=(worldMap_getPlayerTile()>>4)&15;
+  if(t==6){haven_enter();return 0;}
+  if(t==5){quest_blessing=1;if(quest_stage==1&&quest_clue)quest_stage=2;quest_note("Shrine inscription: Five lights share one source. What seems a hungry god may be a captive voice.");return 0;}
+  if(t==7){quest_clue=1;if(quest_stage==1&&quest_blessing)quest_stage=2;quest_note("The sanctuary stone reads: THE LISTENER IS BOUND. Its deeper passage is not yet open. Return to Meriel with the shrine's teaching.");return 0;}
+  quest_note("Travel east to Haven, northeast to the shrine, or southeast to the sanctuary.");return 0;
+ }
  if(direction<1||direction>4)return 0;
- int x=player.tx,y=player.ty;memset(&input,0,sizeof(input));input.up=direction==1;input.down=direction==2;input.left=direction==3;input.right=direction==4;
- playerOverworld_updateMovement(0);memset(&input,0,sizeof(input));waitingTime=0;
- if(player.tx!=x||player.ty!=y){if(player.food<0)player.food=0;turns++;if(!player_isAlive())note("Your supplies are exhausted. Start a new reading to journey again.");return 1;}return 0;
+ int inTown=quest_location,x=inTown?player.px:player.tx,y=inTown?player.py:player.ty;memset(&input,0,sizeof(input));input.up=direction==1;input.down=direction==2;input.left=direction==3;input.right=direction==4;
+ if(inTown)playerTown_updateMovement(0);else playerOverworld_updateMovement(0);memset(&input,0,sizeof(input));waitingTime=0;
+ if(quest_location!=inTown||(inTown?(player.px!=x||player.py!=y):(player.tx!=x||player.ty!=y))){if(player.food<0)player.food=0;turns++;if(!player_isAlive())quest_note("Your supplies are exhausted. Start a new reading to journey again.");return 1;}return 0;
 }
 EMSCRIPTEN_KEEPALIVE const char *quest_message(void){return message;}
 EMSCRIPTEN_KEEPALIVE const char *quest_state(void){
- static char buffer[512];snprintf(buffer,sizeof(buffer),"{\"monad\":%d,\"x\":%d,\"y\":%d,\"hp\":%d,\"food\":%.2f,\"gold\":%d,\"experience\":%d,\"time\":%.2f,\"turn\":%d,\"strength\":%d,\"agility\":%d,\"stamina\":%d,\"charisma\":%d,\"wisdom\":%d,\"intelligence\":%d,\"tile\":%d}",monad,player.tx,player.ty,player.health,player.food,player.gold,player.experience,player.time,turns,player.strength,player.agility,player.stamina,player.charisma,player.wisdom,player.intelligence,(worldMap_getPlayerTile()>>4)&15);return buffer;
+ static char buffer[900];snprintf(buffer,sizeof(buffer),"{\"monad\":%d,\"x\":%d,\"y\":%d,\"hp\":%d,\"food\":%.2f,\"gold\":%d,\"experience\":%d,\"time\":%.2f,\"turn\":%d,\"strength\":%d,\"agility\":%d,\"stamina\":%d,\"charisma\":%d,\"wisdom\":%d,\"intelligence\":%d,\"tile\":%d,\"location\":%d,\"px\":%d,\"py\":%d,\"quest\":%d,\"clue\":%d,\"blessing\":%d,\"supplies\":%d,\"resolution\":%d,\"tonics\":%d}",monad,player.tx,player.ty,player.health,player.food,player.gold,player.experience,player.time,turns,player.strength,player.agility,player.stamina,player.charisma,player.wisdom,player.intelligence,(worldMap_getPlayerTile()>>4)&15,quest_location,player.px,player.py,quest_stage,quest_clue,quest_blessing,quest_supplies,quest_resolution,quest_tonics);return buffer;
 }
 EMSCRIPTEN_KEEPALIVE int quest_restore(int id,int x,int y,int health,double food,int turn,double time){
  if(id<0||id>=5||x<0||x>=172||y<0||y>=172||health<0||health>100||!isfinite(food)||food<0||food>100||turn<0||turn>1000000||!isfinite(time)||time<0||time>1000000)return 0;
  int t=(worldMap_getTileAt(x,y)>>4)&15;if(t==0||t==3)return 0;
- monad=id;player.tx=x;player.ty=y;player.health=health;player.food=(float)food;turns=turn;player.time=(float)time;playerOverworld_init();note("Your journey on the Lantern Coast resumes.");return 1;
+ if(quest_location)playerTown_free();quest_location=0;quest_conversation=-1;monad=id;player.strength=attributes[id][0];player.agility=attributes[id][1];player.stamina=attributes[id][2];player.charisma=attributes[id][3];player.wisdom=attributes[id][4];player.intelligence=attributes[id][5];player.tx=x;player.ty=y;player.health=health;player.food=(float)food;turns=turn;player.time=(float)time;playerOverworld_init();quest_note("Your journey on the Lantern Coast resumes.");return 1;
+}
+EMSCRIPTEN_KEEPALIVE void quest_set_name(const char *name){snprintf(player.name,sizeof(player.name),"%.15s",name);}
+EMSCRIPTEN_KEEPALIVE int quest_restore_full(int id,int x,int y,int health,double food,int turn,double time,int location,int px,int py,int stage,int clue,int blessing,int supplies,int resolution,int gold,int experience,int tonics){
+ if(location<0||location>1||stage<0||stage>3||clue<0||clue>1||blessing<0||blessing>1||supplies<0||supplies>1||resolution<0||resolution>2||gold<0||gold>100000||experience<1||experience>100000||tonics<0||tonics>5)return 0;
+ if((stage>=2&&(!clue||!blessing))||(stage==3?resolution==0:resolution!=0))return 0;
+ if(px<0||px>=40||py<0||py>=22)return 0;
+ if(location&&((x!=43||y!=40)||!haven_valid_position(px,py)))return 0;
+ if(!quest_restore(id,x,y,health,food,turn,time))return 0;
+ quest_stage=stage;quest_clue=clue;quest_blessing=blessing;quest_supplies=supplies;quest_resolution=resolution;quest_tonics=tonics;player.gold=gold;player.experience=experience;
+ if(location)haven_enter();player.px=px;player.py=py;
+ return 1;
 }
 static void frame(void){
  glfwPollEvents();memset(&input,0,sizeof(input));glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
- if(monad>=0){worldMap_update(camera_getViewProjectionMatrix(&camera));playerOverworld_render();}glfwSwapBuffers(window);
+ if(monad>=0){if(quest_location)haven_render();else{worldMap_update(camera_getViewProjectionMatrix(&camera));playerOverworld_render();}}glfwSwapBuffers(window);
 }
-int main(void){if(!engine_init())return 1;world_create();emscripten_set_main_loop(frame,0,1);return 0;}
+int main(void){if(!engine_init())return 1;world_create();haven_init();emscripten_set_main_loop(frame,0,1);return 0;}

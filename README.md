@@ -3,17 +3,28 @@
 An original browser RPG by David Cole, set in The Lion of God universe.
 Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 
-## Chapter 0.3: Open Sosaria migration
+## Chapter 0.4: Haven of the Five Lights
 
 The primary browser build now runs Open Sosaria's native C overworld systems,
 compiled to WebAssembly/WebGL 2. The Fortune Teller's four-choice reading
 reveals one of five Monads and initializes a native player on the Lantern Coast.
 
-This milestone establishes the engine handoff, overworld travel, original
-terrain, and native character state. Town interiors, dungeon exploration,
-encounters, active Monad powers, and party combat have not yet been adapted.
-Haven, the shrine, and the Buried Sanctuary have map markers with introductory
-messages. Their doors are not presented as completed areas.
+The native overworld now connects to Haven's original town interior. Meet six
+residents: Meriel the keeper, Tavian the healer, Iona the outfitter, Caldus the
+witness, Senna the gardener, and Aster the traveler. Stand beside a resident
+and interact to converse. The south gate returns to the same overworld tile.
+
+Meriel's Fading Light quest asks you to investigate the northeast shrine and
+the southeast sanctuary's surface inscription, then return to Haven. Choose
+a listening vigil or a guarded expedition. Both choices complete the quest,
+award 25 experience and 30 gold once, and preserve the town's response.
+Exploring the inscriptions before accepting the quest is supported.
+
+Tavian offers free healing and tonics for 10 gold (pouch limit five). Iona gives
+first provisions once, then sells 20 food for 5 gold, capped at 100. Conversations
+and transactions do not advance time; town movement uses upstream food/time
+rules. Active Monad powers, encounters, the deeper dungeon, and party combat
+are still to come.
 
 The earlier five-floor JavaScript dungeon remains playable at
 **legacy/index.html**, with its separate save format and original rules.
@@ -29,8 +40,9 @@ For the standalone downloadable build, open **play.html**. It embeds the card
 portraits, UI, and native runtime and works offline without a server.
 
 - Arrows / WASD or the touch pad: move one step.
-- E / Enter or Interact: read the current location's introduction.
+- E / Enter or Interact: enter Haven, read an inscription, or talk beside a resident.
 - Space or Wait: spend a waiting turn.
+- H or Tonic: restore 25 vitality, spending one tonic and a waiting turn.
 - Save / Resume / Export / Import: keep a native journey and its character reading.
 - New reading: begin another journey, or cancel to keep playing.
 
@@ -40,6 +52,7 @@ requires a vessel, and mountains block travel. Vehicles are not purchasable
 in this milestone. Nothing advances while idle or while the ceremony is open.
 
 Each successful walking step consumes 0.5 food and advances native time by 1.
+Town steps consume 0.01 food and advance time by 0.1.
 Waiting consumes 0.05 food and advances time by 0.5. Failed movement consumes
 neither. Exhausted journeys can still be saved and resumed; start another
 reading to travel again. The world currently has a fixed authored layout;
@@ -77,6 +90,7 @@ The older prototype can be rebuilt separately with:
     python3 tools/build-legacy.py
 
 - native/opensosaria/src: upstream source, including retained unported systems.
+- native/town.c and town.h: Haven map, residents, native dialogue/quest state.
 - native/quest.c: original content/data loader, native player initialization,
   browser API, and frame loop.
 - native/Makefile: explicit sources entering the browser build.
@@ -88,7 +102,10 @@ The older prototype can be rebuilt separately with:
 
 The active world uses upstream worldMap.c for map geometry and rendering,
 playerOverworld.c for movement/collision/camera/player rendering, and player.c
-for resource/time rules and the Player structure. The original disk loader,
+for resource/time rules and the Player structure. Haven reuses playerTown.c for native movement, collision requests, gate exits,
+and player rendering; native/town.c supplies the original map, resident
+collision, scene transition adapter, conversation choices, and quest rules.
+The original disk loader,
 Ultima strings, maps, enemy data, font/audio binaries, and original-game scenes
 are excluded from the compiled milestone. An original atlas and original map
 tables supply the native interfaces instead.
@@ -114,13 +131,18 @@ assets/ARTWORK.md. No fan texture pack has been added.
 With Playwright/Chromium installed:
 
     node tests/native-browser.cjs
+    node tests/haven-browser.cjs
 
 CHROMIUM_EXECUTABLE can select a browser binary. Native browser tests cover a
 complete reading, all five character presets, native movement and food/time
 costs, location introductions, both region seams, terrain blocking, dialogs
 preventing actions, saves across reload, invalid imports preserving the current
 journey, exhausted saves, and desktop/landscape/portrait layouts. Both the web
-entry and standalone HTML are exercised. Physical Safari/iOS testing remains.
+entry and standalone HTML are exercised. Haven checks exercise six conversations and both quest outcomes across three
+viewport sizes, town save/reload, atomic invalid imports, provisions, tonic
+purchases, single rewards, and upgrading earlier native saves. Town positions,
+quest flags, supplies, tonics, gold, and experience are saved in version 2.
+Physical Safari/iOS testing remains.
 
 Earlier dungeon checks remain available:
 
@@ -133,8 +155,7 @@ Earlier dungeon checks remain available:
 
 ## Next native milestones
 
-1. Adapt a town interior with named conversations and a keeper quest.
-2. Replace the native item/spell/data tables with original definitions.
-3. Adapt the dungeon and encounter systems into the same native save/world state.
-4. Add active Monad abilities and consequences to the persistent world.
-5. Extend the single-character foundation into party/tactical combat.
+1. Adapt the dungeon and encounter systems into the same native save/world state.
+2. Replace native equipment/spell tables with original definitions.
+3. Add active Monad abilities and further consequences to the persistent world.
+4. Extend the single-character foundation into party/tactical combat.

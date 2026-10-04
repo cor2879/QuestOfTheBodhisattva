@@ -1,0 +1,38 @@
+const{chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path');
+async function walk(p,x,y){await p.evaluate(({x,y})=>{
+ const s=nativeSnapshot(),start=s.location?[s.px,s.py]:[s.x,s.y],q=[{x:start[0],y:start[1],path:[]}],seen=new Set([start.join(',')]),directions=[[0,-1,1],[0,1,2],[-1,0,3],[1,0,4]];
+ for(let i=0;i<q.length;i++){const a=q[i];if(a.x===x&&a.y===y){for(const action of a.path)nativeAct(action);return;}
+  for(const[dx,dy,action]of directions){const nx=a.x+dx,ny=a.y+dy,k=nx+','+ny;if(seen.has(k)||!nativeCall('quest_can_walk','number',['number','number'],[nx,ny]))continue;seen.add(k);q.push({x:nx,y:ny,path:[...a.path,action]});}
+ }throw Error('No route to '+x+','+y);
+},{x,y});}
+async function talk(p,x,y){await walk(p,x,y);await p.click('[data-native="6"]');assert(await p.locator('#conversation').isVisible());}
+async function close(p){await p.click('#conversation-close');}
+(async()=>{
+ const b=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,headless:true});
+ for(const [viewport,entry,resolution]of [[{width:1280,height:720},'index.html',3],[{width:844,height:390},'play.html',4],[{width:390,height:844},'index.html',3]]){
+  const p=await b.newPage({viewport,hasTouch:viewport.width<1000}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.resolve(__dirname,'../'+entry));await p.waitForSelector('#welcome[open]');await p.click('#choose-direct');await p.click('[data-monad="raphael"]');await p.fill('#character-name','Haven Walker');await p.click('#begin');for(let i=0;i<3;i++)await p.click('[data-native="4"]');await p.click('[data-native="6"]');assert.equal(await p.evaluate(()=>nativeSnapshot().location),1);
+  await talk(p,20,7);assert((await p.locator('#conversation-name').textContent()).includes('Meriel'));const t=await p.evaluate(()=>nativeSnapshot().turn);await p.keyboard.press('ArrowRight');await p.evaluate(()=>nativeCall('quest_action','number',['number'],[4]));assert.equal(await p.evaluate(()=>nativeSnapshot().turn),t);await p.click('[data-option="1"]');assert.equal(await p.evaluate(()=>nativeSnapshot().quest),1);await p.screenshot({path:'/tmp/quest-meriel-'+viewport.width+'.png'});await close(p);
+  // Persistence inside town keeps position, mission and character, with no open dialog on resume.
+  const saved=await p.evaluate(()=>JSON.stringify(nativeSaveData()));await p.reload();await p.waitForSelector('#welcome[open]');await p.click('#welcome-resume');assert.equal(await p.evaluate(()=>JSON.stringify(nativeSaveData())),saved);
+  const corrupt=JSON.parse(saved);corrupt.state.px=0;await p.locator('#native-file').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(corrupt))});await p.waitForFunction(()=>document.getElementById('native-message').textContent.includes('Invalid'));assert.equal(await p.evaluate(()=>JSON.stringify(nativeSaveData())),saved);
+  await talk(p,30,8);await p.click('[data-option="20"]');assert.equal(await p.evaluate(()=>nativeSnapshot().supplies),1);const gold=await p.evaluate(()=>nativeSnapshot().gold);await p.evaluate(()=>nativeCall('quest_option','number',['number'],[20]));assert.equal(await p.evaluate(()=>nativeSnapshot().gold),gold);await close(p);
+  await talk(p,9,8);await p.click('[data-option="11"]');assert.equal(await p.evaluate(()=>nativeSnapshot().tonics),1);assert.equal(await p.evaluate(()=>nativeSnapshot().gold),40);await close(p);
+  await talk(p,9,16);await p.click('[data-option="30"]');assert((await p.locator('#conversation-response').textContent()).includes('sanctuary stone'));await close(p);
+  await talk(p,30,16);await p.click('[data-option="40"]');await close(p);await talk(p,21,13);await p.click('[data-option="50"]');await close(p);
+  await walk(p,20,21);await p.click('[data-native="2"]');assert.equal(await p.evaluate(()=>nativeSnapshot().location),0);assert.equal(await p.evaluate(()=>nativeSnapshot().x),43);
+  await walk(p,47,35);await p.click('[data-native="6"]');assert.equal(await p.evaluate(()=>nativeSnapshot().blessing),1);await walk(p,51,47);await p.click('[data-native="6"]');assert.equal(await p.evaluate(()=>nativeSnapshot().quest),2);
+  await walk(p,43,40);await p.click('[data-native="6"]');await talk(p,20,7);await p.click('[data-option="'+resolution+'"]');let s=await p.evaluate(()=>nativeSnapshot());assert.equal(s.quest,3);assert.equal(s.resolution,resolution===3?1:2);assert.equal(s.gold,70);assert.equal(s.experience,26);await p.evaluate(resolution=>nativeCall('quest_option','number',['number'],[resolution]),resolution);assert.equal(await p.evaluate(()=>nativeSnapshot().gold),70);await close(p);
+  const won=await p.evaluate(()=>JSON.stringify(nativeSaveData()));await p.reload();await p.waitForSelector('#welcome[open]');await p.click('#welcome-resume');assert.equal(await p.evaluate(()=>JSON.stringify(nativeSaveData())),won);
+  assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));if(viewport.width>=650){assert.equal(await p.evaluate(()=>scrollY),0);const box=await p.locator('canvas').boundingBox();assert(box.y+box.height<=viewport.height);}
+  await p.screenshot({path:'/tmp/quest-haven-complete-'+viewport.width+'.png'});assert.deepEqual(errors,[]);console.log('PASS Haven quest, six conversations, economy and town save',viewport,resolution);await p.close();
+ }
+ // Earlier native saves upgrade to the town-capable format.
+ const p=await b.newPage();await p.goto('file://'+path.resolve(__dirname,'../index.html'));await p.waitForSelector('#welcome[open]');await p.click('#choose-direct');await p.click('#begin');await p.evaluate(()=>{const old=nativeSaveData();old.version=1;for(const k of ['location','px','py','quest','clue','blessing','supplies','resolution','tonics'])delete old.state[k];nativeRestore(JSON.stringify(old));});assert.equal(await p.evaluate(()=>nativeSnapshot().quest),0);console.log('PASS earlier native save upgrade');
+ await p.evaluate(()=>{const d=nativeSaveData();Object.assign(d.state,{x:43,y:40,location:1,px:9,py:8,hp:50,food:80,gold:50,tonics:0});nativeRestore(JSON.stringify(d));});
+ await p.click('[data-native="6"]');await p.click('[data-option="10"]');assert.equal(await p.evaluate(()=>nativeSnapshot().hp),100);
+ for(let i=0;i<5;i++)await p.click('[data-option="11"]');assert.equal(await p.evaluate(()=>nativeSnapshot().tonics),5);assert.equal(await p.evaluate(()=>nativeSnapshot().gold),0);await p.click('[data-option="11"]');assert.equal(await p.evaluate(()=>nativeSnapshot().tonics),5);await close(p);
+ await p.evaluate(()=>{const d=nativeSaveData();d.state.hp=70;nativeRestore(JSON.stringify(d));});await p.click('[data-native="7"]');assert.equal(await p.evaluate(()=>nativeSnapshot().hp),95);assert.equal(await p.evaluate(()=>nativeSnapshot().tonics),4);assert.equal(await p.evaluate(()=>nativeSnapshot().time),0.5);
+ await p.evaluate(()=>{const d=nativeSaveData();Object.assign(d.state,{px:30,py:8,food:90,gold:5,supplies:1});nativeRestore(JSON.stringify(d));});await p.click('[data-native="6"]');await p.click('[data-option="21"]');assert.equal(await p.evaluate(()=>nativeSnapshot().food),100);assert.equal(await p.evaluate(()=>nativeSnapshot().gold),0);await close(p);
+ const before=await p.evaluate(()=>JSON.stringify(nativeSaveData()));assert(await p.evaluate(()=>{const d=nativeSaveData();d.state.quest=3;d.state.resolution=1;try{nativeRestore(JSON.stringify(d));return false;}catch{return true;}}));assert.equal(await p.evaluate(()=>JSON.stringify(nativeSaveData())),before);
+ console.log('PASS healing, tonic effect/limit, food cap and invalid quest rollback');await b.close();
+})().catch(e=>{console.error(e);process.exit(1)});
