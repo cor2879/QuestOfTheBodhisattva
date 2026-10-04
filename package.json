@@ -2,7 +2,7 @@
   "name": "quest-of-the-bodhisattva",
   "private": true,
   "scripts": {
-    "test": "node tests/fortune.cjs && node tests/native-browser.cjs && node tests/haven-browser.cjs && node tests/dungeon-browser.cjs && node tests/rescue-browser.cjs && node tests/growth-browser.cjs",
+    "test": "node tests/fortune.cjs && node tests/native-browser.cjs && node tests/haven-browser.cjs && node tests/dungeon-browser.cjs && node tests/rescue-browser.cjs && node tests/growth-browser.cjs && node tests/vesper-browser.cjs",
     "test:pages": "node tests/pages-browser.cjs"
   },
   "devDependencies": { "playwright": "1.62.1" }

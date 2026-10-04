@@ -2,6 +2,7 @@
 #define QUEST_TOWN_H
 void haven_init(void);
 void haven_enter(void);
+void vesper_enter(void);
 void haven_render(void);
 int haven_interact(void);
 int haven_valid_position(int x,int y);

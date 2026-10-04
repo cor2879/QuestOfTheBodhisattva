@@ -11,4 +11,11 @@ void sanctuary_restore(const char *data);
 const char *sanctuary_save(void);
 int sanctuary_solid(int x,int y);
 extern int sanctuary_outcome;
+extern int vesper_outcome;
+void archive_enter(void);
+void archive_seed(int seed);
+const char *chapter_save(void);
+int chapter_valid(const char *data,int location,int x,int y);
+void chapter_restore(const char *data);
+const char *chapter_default(void);
 #endif

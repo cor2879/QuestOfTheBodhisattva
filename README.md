@@ -3,7 +3,32 @@
 An original browser RPG by David Cole, set in The Lion of God universe.
 Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 
-## Chapter 0.6: Gifts and Growth
+## Chapter 0.7: The Unwritten Names
+
+Continue an existing journey: after answering the Bound Listener, travel eleven
+steps east from Haven to **Vesper (54,40)**. Maera waits in the northern hall.
+Hear Neris and Oren, then prepare a public remembrance or a protected vigil.
+The **Archive (54,33)** opens seven steps north of the city. Both preparations
+lead to the Choir; your final answer may differ from your initial intention.
+Return to Maera to complete the quest. The witnesses remember the ending.
+
+Vesper has six original residents, a twilight/memorial palette, free healing and
+Light, tonics, food and the same gear economy as Haven. It shares the native
+town footprint and upstream movement system; it is not a new browser-side engine.
+The first sanctuary remains authored and unchanged. The Archive uses a native
+seeded 11×11 maze: depth-first carving, two alternate connections, a reachable
+Choir at (9,1), a generated cache, and three stronger horrors (24/28/32 vitality).
+All floor cells are connected. Its plan marks the exit, cache, Choir and horrors.
+Its seed, encounters, cache and outcome persist independently from the first
+sanctuary. New journeys vary; revisits, reloads and rescues never reroll the map.
+
+Vesper rewards: 35 experience once for preparing the city; 12 experience/eight
+gold for each horror; 15 gold, a robe and a tonic (if room) from the cache; and
+60 experience/25 gold once when reporting the Choir's answer to Maera. Choosing
+at the Choir does not itself grant another reward. Public remembrance and a
+protected vigil have equal rewards; the branch changes remembered story responses,
+not the combat difficulty. All five native Monad gifts work in both dungeons.
+Levels five and six now extend growth to 160 and 240 experience.
 
 The primary browser build now runs Open Sosaria's native C overworld systems,
 compiled to WebAssembly/WebGL 2. The Fortune Teller's four-choice reading
@@ -40,7 +65,8 @@ Blocked movement and attacks without a target spend no turn. The plan at the
 bottom shows you in cyan, horrors red, entrance gold, cache green, Listener
 violet. Idle time never advances combat. At zero vitality or food, E recalls
 you to Haven with at least 50 vitality/20 food for up to ten gold, keeping all progress.
-Monad powers, equipment and levels are now active. Procedural floors, wider-world encounters and party combat remain future work.
+Monad powers, equipment and levels are active in both dungeons. The Archive is
+the first procedural floor; wider-world encounters, deeper floors and party combat remain future work.
 
 The earlier five-floor JavaScript dungeon remains playable at
 **legacy/index.html**, with its separate save format and original rules.
@@ -61,7 +87,8 @@ portraits, UI, and native runtime and works offline without a server.
 - F / Strike ahead: attack a horror in your weapon’s forward reach.
 - P / Monad gift: spend three Light to use your spiritual gift.
 - Equipment: choose owned gear; Iona sells it and the cache grants a robe.
-- R / Release or B / Ward: choose at the Listener’s chamber.
+- R / Release or B / Ward: choose at the Listener’s chamber; remember or shelter
+  the Choir in the Archive.
 - Space or Wait: spend a waiting turn.
 - H or Tonic: restore 25 vitality, spending one tonic and a waiting turn.
 - Save / Resume / Export / Import: keep a native journey and its character reading.
@@ -78,13 +105,14 @@ Waiting consumes 0.05 food and advances time by 0.5. Failed movement consumes
 neither. Exhausted journeys can still be saved and resumed. Interact or use Rescue to
 Haven to recover anywhere, including the coast and town, even with no gold.
 Food and vitality remain visible beside the map; food at ten or below triggers
-a supply warning. Rescue preserves your character, quests and dungeon state. The world currently has a fixed authored layout;
-the Fortune Teller's shuffled reading supplies the ceremony's variation.
+a supply warning. Rescue preserves your character, quests and both dungeon states.
+The overworld and first sanctuary are authored. The Archive has a saved native
+seed derived from each new journey; older saves begin with Archive seed one.
 
 ## Automatic builds and phone testing
 
 GitHub Actions rebuilds the C/WebAssembly game with Emscripten 6.0.10 on each
-push to main. It runs the Fortune Teller, overworld, Haven, sanctuary, and
+push to main. It runs the Fortune Teller, overworld, Haven, sanctuary, Vesper/Archive, and
 project-prefix browser checks before publishing the staged site to GitHub Pages.
 Pull requests run the same checks without deploying. The Actions tab also offers
 **Run workflow** for a manual rebuild. Each successful build retains an offline
@@ -149,8 +177,10 @@ Gaining a level also refills Light. Vitality remains capped at 100.
 | 2 | 25 | 10 | 2 |
 | 3 | 60 | 12 | 4 |
 | 4 | 100 | 14 | 6 |
+| 5 | 160 | 16 | 8 |
+| 6 | 240 | 18 | 10 |
 
-Level four is this chapter's cap. Level is derived from native experience, so
+Level six is this chapter's cap. Level is derived from native experience, so
 older completed journeys receive their earned level on import/resume.
 
 | Equipment | Cost | Effect |
@@ -165,7 +195,13 @@ Equipment to switch owned weapons/clothes. A dungeon equipment change costs a
 waiting turn and lets horrors act; changing gear in town/on the coast is free.
 Temporary effects clear on exiting the dungeon or rescue; gear and Light persist.
 
-Native save version four adds Light, owned/equipped gear and temporary effects.
+Native save version five adds Vesper's testimony, preparation and ending, plus
+the independent Archive seed/encounter/cache state. Versions one through four
+upgrade without resetting the character or either existing quest. Version four
+keeps Light and equipment; earlier versions receive full Light and starting gear.
+Invalid chapter, progression, or scene imports are validated before any mutation.
+
+Native save version four added Light, owned/equipped gear and temporary effects.
 Versions one through three upgrade with full Light and starting gear; their
 character, experience, quests and dungeon progress are retained. A cache already
 opened in an older version keeps its prior rewards; Iona can sell the new robe.
@@ -189,10 +225,12 @@ The older prototype can be rebuilt separately with:
 - native/progression.c and progression.h: original native levels, Light, equipment
   and validated growth/effect persistence in the upstream Player structure.
 - native/town.c and town.h: Haven map, residents, native dialogue/quest state.
+- native/chapter.c and chapter.h: Vesper's original residents, testimony,
+  branching preparation, remembered ending and one-time return reward.
 - native/quest.c: original content/data loader, native player initialization,
   browser API, and frame loop.
-- native/dungeon.c and dungeon.h: original sanctuary map, perspective data, horror
-  vector artwork, encounters, choices, and validated persistence.
+- native/dungeon.c and dungeon.h: original sanctuary, seeded Archive generation,
+  perspective data, horror vector artwork, encounters, choices and validated persistence.
 - native/Makefile: explicit sources entering the browser build.
 - native-host.js: Fortune Teller handoff, controls, native stats, and saves.
 - monads.js: ceremony metadata and deterministic reading RNG, not world rules.
@@ -253,8 +291,14 @@ blocked movement, dungeon reload, corrupt payload rollback, exit/reentry,
 rescue, and desktop/landscape/portrait layouts.
 `node tests/growth-browser.cjs` exercises all five gifts, costs, effect expiry,
 active-effect reload, equipment transactions and combat, native level boundaries,
-old-save upgrades and invalid progression rollback. The earlier chapter has
-been played successfully on a physical iPhone; this update still needs that check.
+old-save upgrades and invalid progression rollback.
+`node tests/vesper-browser.cjs` checks 128 native seeds for connected, bounded,
+repeatable maps and non-overlapping cache/horrors. It follows the new quest with
+all five Monads through native town movement, both witnesses, both preparations,
+both endings (including changing one's mind), combat, cache, return reward,
+scene-3/scene-4 save/reload, invalid-import rollback and rescue from both scenes.
+Desktop, landscape and portrait layouts are checked. Chapter 0.6 has been
+played successfully on a physical iPhone; Chapter 0.7 still needs that check.
 
 Earlier dungeon checks remain available:
 

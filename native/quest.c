@@ -22,6 +22,7 @@
 #include "town.h"
 #include "dungeon.h"
 #include "progression.h"
+#include "chapter.h"
 UltimaAssets ultimaAssets;
 char ultimaStrings[1500][41];
 unsigned char vehiclesMap[OS_BTERRA_MAP_WIDTH*2][OS_BTERRA_MAP_HEIGHT*2];
@@ -76,20 +77,22 @@ static void world_create(void){
  ultimaAssets.bterraMaps[0][40][43]=0x60; /* Haven */
  ultimaAssets.bterraMaps[0][35][47]=0x50; /* Shrine */
  ultimaAssets.bterraMaps[0][47][51]=0x70; /* Sanctuary */
+ ultimaAssets.bterraMaps[0][40][54]=0x60; /* Vesper */
+ ultimaAssets.bterraMaps[0][33][54]=0x70; /* Archive */
  strcpy(ultimaStrings[98],"Travel: ");strcpy(ultimaStrings[117],"north");strcpy(ultimaStrings[118],"south");strcpy(ultimaStrings[119],"east");strcpy(ultimaStrings[120],"west");strcpy(ultimaStrings[122],"Water requires a vessel.");strcpy(ultimaStrings[123],"The mountains block your path.");
  atlas_create();worldMap_init();
 }
 EMSCRIPTEN_KEEPALIVE int quest_start(int id,const char *name){
  if(id<0||id>=5)return 0;
- if(quest_location==1)playerTown_free();quest_location=0;quest_conversation=-1;quest_stage=quest_clue=quest_blessing=quest_supplies=quest_resolution=quest_tonics=0;
+ if(quest_location==1||quest_location==3)playerTown_free();quest_location=0;quest_conversation=-1;quest_stage=quest_clue=quest_blessing=quest_supplies=quest_resolution=quest_tonics=0;
  sanctuary_reset();memset(&player,0,sizeof(player));monad=id;turns=0;player.health=100;player.food=100;player.gold=50;player.experience=1;player.tx=40;player.ty=40;player.type=1;
  snprintf(player.name,sizeof(player.name),"%.15s",name);
  player.strength=attributes[id][0];player.agility=attributes[id][1];player.stamina=attributes[id][2];player.charisma=attributes[id][3];player.wisdom=attributes[id][4];player.intelligence=attributes[id][5];player.weapons[0]=1;
  quest_progress_reset();playerOverworld_init();quest_note("The Lantern Coast. Haven lies three steps east. Seek its keeper.");return 1;
 }
-EMSCRIPTEN_KEEPALIVE int quest_can_walk(int x,int y){if(quest_location==2)return !sanctuary_solid(x,y);if(quest_location==1)return haven_valid_position(x,y);if(x<0||x>=172||y<0||y>=172)return 0;int t=(worldMap_getTileAt(x,y)>>4)&15;return t!=0&&t!=3;}
+EMSCRIPTEN_KEEPALIVE int quest_can_walk(int x,int y){if(quest_location==2||quest_location==4)return !sanctuary_solid(x,y);if(quest_location==1||quest_location==3)return haven_valid_position(x,y);if(x<0||x>=172||y<0||y>=172)return 0;int t=(worldMap_getTileAt(x,y)>>4)&15;return t!=0&&t!=3;}
 static void quest_rescue(void){
- if(quest_location==1)playerTown_free();
+ if(quest_location==1||quest_location==3)playerTown_free();
  quest_clear_effects();quest_location=0;quest_conversation=-1;player.tx=43;player.ty=40;
  player.gold=player.gold>10?player.gold-10:0;
  if(player.health<50)player.health=50;if(player.food<20)player.food=20;
@@ -98,18 +101,20 @@ static void quest_rescue(void){
 EMSCRIPTEN_KEEPALIVE int quest_action(int direction){
  if(monad<0||quest_conversation>=0)return 0;
  if(!player_isAlive()&&direction==6){quest_rescue();return 0;}
- if(direction==12&&quest_location!=2){
+ if(direction==12&&quest_location!=2&&quest_location!=4){
   if(!player_isAlive()||monad!=2){quest_note("This gift is used in the dungeon; Raphael may heal anywhere.");return 0;}
   if(player.health>=100||quest_light<3){quest_note("Restoration needs a wound and three Light.");return 0;}
   quest_light-=3;player.health=fminf(100,player.health+30+2*quest_level());player_waitPenalty();if(player.food<0)player.food=0;turns++;quest_note("Raphael's Restoring Light mends your wounds.");return 1;
  }
- if(quest_location==2&&direction!=7){int acted=sanctuary_action(direction,monad);if(acted)turns++;return acted;}
+ if((quest_location==2||quest_location==4)&&direction!=7){int acted=sanctuary_action(direction,monad);if(acted)turns++;return acted;}
  if(!player_isAlive()&&direction!=6&&direction!=7)return 0;
- if(direction==7){if(!quest_tonics||player.health>=100){quest_note("No tonic is needed, or your pouch is empty.");return 0;}quest_tonics--;player.health=(player.health+25>100)?100:player.health+25;player_waitPenalty();if(player.food<0)player.food=0;turns++;quest_note("A tonic restores twenty-five vitality.");if(quest_location==2)sanctuary_action(11,monad);return 1;}
+ if(direction==7){if(!quest_tonics||player.health>=100){quest_note("No tonic is needed, or your pouch is empty.");return 0;}quest_tonics--;player.health=(player.health+25>100)?100:player.health+25;player_waitPenalty();if(player.food<0)player.food=0;turns++;quest_note("A tonic restores twenty-five vitality.");if(quest_location==2||quest_location==4)sanctuary_action(11,monad);return 1;}
  if(direction==5){player_waitPenalty();if(player.food<0)player.food=0;turns++;if(quest_light<quest_light_max())quest_light++;quest_note("You rest and recover one Light, up to your capacity.");return 1;}
  if(direction==6){
   if(quest_location){haven_interact();return 0;}
   int t=(worldMap_getPlayerTile()>>4)&15;
+  if(player.tx==54&&player.ty==40){if(sanctuary_outcome)vesper_enter();else quest_note("Vesper's gates wait for the Listener's answer. Finish Haven's sanctuary at (51,47), then return here.");return 0;}
+  if(player.tx==54&&player.ty==33){if(vesper_stage>=3)archive_enter();else quest_note("The Archive is sealed. Seek Maera in Vesper at (54,40), hear both witnesses, and prepare the city.");return 0;}
   if(t==6){haven_enter();return 0;}
   if(t==5){quest_recharge();quest_blessing=1;if(quest_stage==1&&quest_clue)quest_stage=2;quest_note("Shrine inscription: Five lights share one source. What seems a hungry god may be a captive voice.");return 0;}
   if(t==7&&quest_stage==3){sanctuary_enter();return 0;}
@@ -123,12 +128,12 @@ EMSCRIPTEN_KEEPALIVE int quest_action(int direction){
 }
 EMSCRIPTEN_KEEPALIVE const char *quest_message(void){return message;}
 EMSCRIPTEN_KEEPALIVE const char *quest_state(void){
- static char buffer[1400];snprintf(buffer,sizeof(buffer),"{\"monad\":%d,\"x\":%d,\"y\":%d,\"hp\":%d,\"food\":%.2f,\"gold\":%d,\"experience\":%d,\"time\":%.2f,\"turn\":%d,\"strength\":%d,\"agility\":%d,\"stamina\":%d,\"charisma\":%d,\"wisdom\":%d,\"intelligence\":%d,\"tile\":%d,\"location\":%d,\"px\":%d,\"py\":%d,\"quest\":%d,\"clue\":%d,\"blessing\":%d,\"supplies\":%d,\"resolution\":%d,\"tonics\":%d,\"level\":%d,\"nextLevelXP\":%d,\"light\":%d,\"maxLight\":%d,\"owned\":%d,\"weapon\":%d,\"armor\":%d,\"strike\":%d,\"reach\":%d,\"ward\":%d,\"veil\":%d,\"focus\":%d}",monad,player.tx,player.ty,player.health,player.food,player.gold,player.experience,player.time,turns,player.strength,player.agility,player.stamina,player.charisma,player.wisdom,player.intelligence,(worldMap_getPlayerTile()>>4)&15,quest_location,player.px,player.py,quest_stage,quest_clue,quest_blessing,quest_supplies,quest_resolution,quest_tonics,quest_level(),quest_level()==1?25:quest_level()==2?60:quest_level()==3?100:0,quest_light,quest_light_max(),quest_owned,player.weapon,player.armor,quest_strike_damage(),quest_strike_range(),quest_ward,quest_veil,quest_focus);return buffer;
+ static char buffer[1400];snprintf(buffer,sizeof(buffer),"{\"monad\":%d,\"x\":%d,\"y\":%d,\"hp\":%d,\"food\":%.2f,\"gold\":%d,\"experience\":%d,\"time\":%.2f,\"turn\":%d,\"strength\":%d,\"agility\":%d,\"stamina\":%d,\"charisma\":%d,\"wisdom\":%d,\"intelligence\":%d,\"tile\":%d,\"location\":%d,\"px\":%d,\"py\":%d,\"quest\":%d,\"clue\":%d,\"blessing\":%d,\"supplies\":%d,\"resolution\":%d,\"tonics\":%d,\"level\":%d,\"nextLevelXP\":%d,\"light\":%d,\"maxLight\":%d,\"owned\":%d,\"weapon\":%d,\"armor\":%d,\"strike\":%d,\"reach\":%d,\"ward\":%d,\"veil\":%d,\"focus\":%d}",monad,player.tx,player.ty,player.health,player.food,player.gold,player.experience,player.time,turns,player.strength,player.agility,player.stamina,player.charisma,player.wisdom,player.intelligence,(worldMap_getPlayerTile()>>4)&15,quest_location,player.px,player.py,quest_stage,quest_clue,quest_blessing,quest_supplies,quest_resolution,quest_tonics,quest_level(),quest_level()==1?25:quest_level()==2?60:quest_level()==3?100:quest_level()==4?160:quest_level()==5?240:0,quest_light,quest_light_max(),quest_owned,player.weapon,player.armor,quest_strike_damage(),quest_strike_range(),quest_ward,quest_veil,quest_focus);size_t used=strlen(buffer);snprintf(buffer+used-1,sizeof(buffer)-used+1,",\"vesperStage\":%d,\"testimony\":%d,\"intent\":%d,\"choir\":%d}",vesper_stage,vesper_testimony,vesper_intent,vesper_outcome);return buffer;
 }
 EMSCRIPTEN_KEEPALIVE int quest_restore(int id,int x,int y,int health,double food,int turn,double time){
  if(id<0||id>=5||x<0||x>=172||y<0||y>=172||health<0||health>100||!isfinite(food)||food<0||food>100||turn<0||turn>1000000||!isfinite(time)||time<0||time>1000000)return 0;
  int t=(worldMap_getTileAt(x,y)>>4)&15;if(t==0||t==3)return 0;
- if(quest_location==1)playerTown_free();quest_location=0;quest_conversation=-1;monad=id;player.strength=attributes[id][0];player.agility=attributes[id][1];player.stamina=attributes[id][2];player.charisma=attributes[id][3];player.wisdom=attributes[id][4];player.intelligence=attributes[id][5];player.tx=x;player.ty=y;player.health=health;player.food=(float)food;turns=turn;player.time=(float)time;quest_progress_reset();playerOverworld_init();quest_note("Your journey on the Lantern Coast resumes.");return 1;
+ if(quest_location==1||quest_location==3)playerTown_free();quest_location=0;quest_conversation=-1;monad=id;player.strength=attributes[id][0];player.agility=attributes[id][1];player.stamina=attributes[id][2];player.charisma=attributes[id][3];player.wisdom=attributes[id][4];player.intelligence=attributes[id][5];player.tx=x;player.ty=y;player.health=health;player.food=(float)food;turns=turn;player.time=(float)time;quest_progress_reset();playerOverworld_init();quest_note("Your journey on the Lantern Coast resumes.");return 1;
 }
 EMSCRIPTEN_KEEPALIVE void quest_set_name(const char *name){snprintf(player.name,sizeof(player.name),"%.15s",name);}
 EMSCRIPTEN_KEEPALIVE int quest_restore_full(int id,int x,int y,int health,double food,int turn,double time,int location,int px,int py,int stage,int clue,int blessing,int supplies,int resolution,int gold,int experience,int tonics){
@@ -155,12 +160,24 @@ EMSCRIPTEN_KEEPALIVE int quest_restore_v4(int id,int x,int y,int health,double f
  if(!quest_restore_v3(id,x,y,health,food,turn,time,location,px,py,stage,clue,blessing,supplies,resolution,gold,experience,tonics,dungeon))return 0;
  quest_progress_restore(growth);return 1;
 }
+/* All five scenes and both persistent labyrinths are validated before mutation. */
+EMSCRIPTEN_KEEPALIVE int quest_restore_v5(int id,int x,int y,int health,double food,int turn,double time,int location,int px,int py,int stage,int clue,int blessing,int supplies,int resolution,int gold,int experience,int tonics,const char *dungeon,const char *growth,const char *chapter){
+ if(!dungeon||strlen(dungeon)>150||location<0||location>4||!chapter_valid(chapter,location,px,py)||!quest_progress_valid(growth,experience,location))return 0;
+ if(location>=3&&(x!=54||y!=(location==3?40:33)||dungeon[0]!='1'||!sanctuary_valid(dungeon,-1,-1)))return 0;
+ if(location==3&&!haven_valid_position(px,py))return 0;
+ {int firstData[3],chapterStage,seed;if(sscanf(dungeon,"%d,%d,%d",firstData,firstData+1,firstData+2)!=3||sscanf(chapter,"%d,%d",&seed,&chapterStage)!=2)return 0;if((location>=3||chapterStage>0)&&!firstData[2])return 0;}
+ if(!quest_restore_v4(id,x,y,health,food,turn,time,location>=3?0:location,location>=3?0:px,location>=3?0:py,stage,clue,blessing,supplies,resolution,gold,experience,tonics,dungeon,location==4?"0,0,0,0,0,0,0,0,0,0":growth))return 0;
+ chapter_restore(chapter);
+ if(location==3){vesper_enter();player.px=px;player.py=py;}
+ if(location==4){archive_enter();player.px=px;player.py=py;chapter_restore(chapter);quest_progress_restore(growth);}
+ quest_note("Your journey resumes. Both sanctuaries remember the choices you made.");return 1;
+}
 int quest_equip(int slot,int item);
 EMSCRIPTEN_KEEPALIVE int quest_change_equipment(int slot,int item){
  if(monad<0)return 0;int acted=quest_equip(slot,item);if(acted)turns++;return acted;
 }
 static void frame(void){
  glfwPollEvents();memset(&input,0,sizeof(input));glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
- if(monad>=0){if(quest_location==2)sanctuary_render();else if(quest_location==1)haven_render();else{worldMap_update(camera_getViewProjectionMatrix(&camera));playerOverworld_render();}}glfwSwapBuffers(window);
+ if(monad>=0){if(quest_location==2||quest_location==4)sanctuary_render();else if(quest_location==1||quest_location==3)haven_render();else{worldMap_update(camera_getViewProjectionMatrix(&camera));playerOverworld_render();}}glfwSwapBuffers(window);
 }
 int main(void){if(!engine_init())return 1;world_create();haven_init();sanctuary_init();emscripten_set_main_loop(frame,0,1);return 0;}
