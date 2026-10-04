@@ -3,6 +3,19 @@
 const NATIVE_IDS=['ariel','samael','raphael','jophiel','lilith'],NATIVE_KEY='quest-bodhisattva-native-v1';
 let nativeCharacter=null,nativeReady=false,nativeLast=null;
 const n$=id=>document.getElementById(id),nativeCanvas=n$('canvas');
+// Keep one live status region beside the sticky map on phones, and with controls on desktop.
+const nativeFeedback=document.createElement('div');nativeFeedback.className='native-feedback';
+const nativeMessage=n$('native-message'),nativeControls=nativeMessage.parentElement;
+nativeControls.insertBefore(nativeFeedback,nativeControls.firstChild);
+nativeFeedback.append(nativeMessage.previousElementSibling,nativeMessage);
+const nativeMobile=matchMedia('(max-width:649px)');
+function nativePlaceFeedback(){
+ const mobile=nativeMobile.matches;
+ nativeFeedback.querySelector('.eyebrow').textContent=mobile?'Latest update':'Travel with intention';
+ if(mobile)document.querySelector('.view').append(nativeFeedback);
+ else nativeControls.insertBefore(nativeFeedback,nativeControls.firstChild);
+}
+nativeMobile.addEventListener('change',nativePlaceFeedback);nativePlaceFeedback();
 function nativeNotice(message){n$('native-message').textContent=message;}
 function nativeCall(name,returnType,args,values){return Module.ccall(name,returnType,args,values);}
 function nativeSnapshot(){return JSON.parse(nativeCall('quest_state','string',[],[]));}
