@@ -87,8 +87,16 @@ EMSCRIPTEN_KEEPALIVE int quest_start(int id,const char *name){
  playerOverworld_init();quest_note("The Lantern Coast. Haven lies three steps east. Seek its keeper.");return 1;
 }
 EMSCRIPTEN_KEEPALIVE int quest_can_walk(int x,int y){if(quest_location==2)return !sanctuary_solid(x,y);if(quest_location==1)return haven_valid_position(x,y);if(x<0||x>=172||y<0||y>=172)return 0;int t=(worldMap_getTileAt(x,y)>>4)&15;return t!=0&&t!=3;}
+static void quest_rescue(void){
+ if(quest_location==1)playerTown_free();
+ quest_location=0;quest_conversation=-1;player.tx=43;player.ty=40;
+ player.gold=player.gold>10?player.gold-10:0;
+ if(player.health<50)player.health=50;if(player.food<20)player.food=20;
+ playerOverworld_init();quest_note("Haven's vigil brings you home. At least 50 vitality and 20 food restored; up to ten gold spent. Your journey is preserved. Interact to enter Haven for supplies.");
+}
 EMSCRIPTEN_KEEPALIVE int quest_action(int direction){
  if(monad<0||quest_conversation>=0)return 0;
+ if(!player_isAlive()&&direction==6){quest_rescue();return 0;}
  if(quest_location==2&&direction!=7){int acted=sanctuary_action(direction,monad);if(acted)turns++;return acted;}
  if(!player_isAlive()&&direction!=6&&direction!=7)return 0;
  if(direction==7){if(!quest_tonics||player.health>=100){quest_note("No tonic is needed, or your pouch is empty.");return 0;}quest_tonics--;player.health=(player.health+25>100)?100:player.health+25;player_waitPenalty();if(player.food<0)player.food=0;turns++;quest_note("A tonic restores twenty-five vitality.");if(quest_location==2)sanctuary_action(11,monad);return 1;}
@@ -105,7 +113,7 @@ EMSCRIPTEN_KEEPALIVE int quest_action(int direction){
  if(direction<1||direction>4)return 0;
  int inTown=quest_location,x=inTown?player.px:player.tx,y=inTown?player.py:player.ty;memset(&input,0,sizeof(input));input.up=direction==1;input.down=direction==2;input.left=direction==3;input.right=direction==4;
  if(inTown)playerTown_updateMovement(0);else playerOverworld_updateMovement(0);memset(&input,0,sizeof(input));waitingTime=0;
- if(quest_location!=inTown||(inTown?(player.px!=x||player.py!=y):(player.tx!=x||player.ty!=y))){if(player.food<0)player.food=0;turns++;if(!player_isAlive())quest_note("Your supplies are exhausted. Start a new reading to journey again.");return 1;}return 0;
+ if(quest_location!=inTown||(inTown?(player.px!=x||player.py!=y):(player.tx!=x||player.ty!=y))){if(player.food<0)player.food=0;turns++;if(!player_isAlive())quest_note("Your supplies are exhausted. Interact or press E for rescue to Haven; your progress is preserved.");return 1;}return 0;
 }
 EMSCRIPTEN_KEEPALIVE const char *quest_message(void){return message;}
 EMSCRIPTEN_KEEPALIVE const char *quest_state(void){

@@ -39,7 +39,7 @@ horror deals four vitality per action; attacks ahead deal 8 + Strength/5.
 Blocked movement and attacks without a target spend no turn. The plan at the
 bottom shows you in cyan, horrors red, entrance gold, cache green, Listener
 violet. Idle time never advances combat. At zero vitality or food, E recalls
-you to Haven with 50 vitality/20 food for up to ten gold, keeping dungeon progress.
+you to Haven with at least 50 vitality/20 food for up to ten gold, keeping all progress.
 Active Monad abilities, procedural floors, equipment and party combat are future work.
 
 The earlier five-floor JavaScript dungeon remains playable at
@@ -73,8 +73,10 @@ in this milestone. Nothing advances while idle or while the ceremony is open.
 Each successful walking step consumes 0.5 food and advances native time by 1.
 Town steps consume 0.01 food and advance time by 0.1.
 Waiting consumes 0.05 food and advances time by 0.5. Failed movement consumes
-neither. Exhausted journeys can still be saved and resumed; start another
-reading to travel again. The world currently has a fixed authored layout;
+neither. Exhausted journeys can still be saved and resumed. Interact or use Rescue to
+Haven to recover anywhere, including the coast and town, even with no gold.
+Food and vitality remain visible beside the map; food at ten or below triggers
+a supply warning. Rescue preserves your character, quests and dungeon state. The world currently has a fixed authored layout;
 the Fortune Teller's shuffled reading supplies the ceremony's variation.
 
 ## Automatic builds and phone testing

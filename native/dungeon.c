@@ -76,7 +76,6 @@ static void enemies_turn(void){
 int sanctuary_action(int action,int monad){
  if(action==11){enemies_turn();return 0;}
  if(action==6){
-  if(player.health==0||player.food<=0){player.gold=player.gold>10?player.gold-10:0;player.health=50;player.food=20;quest_location=0;player.tx=43;player.ty=40;playerOverworld_setCameraFollow();quest_note("Haven's vigil recalls you. Vitality 50, food 20; up to ten gold spent on rescue. Sanctuary progress remains.");return 0;}
   if(player.px==1&&player.py==9){sanctuary_leave();return 0;}
   if(player.px==3&&player.py==3&&!chest){chest=1;player.gold+=15;if(quest_tonics<5)quest_tonics++;map_sync();quest_note("A pilgrim's cache: fifteen gold and a tonic if your pouch has room.");return 0;}
   if(player.px==9&&player.py==1){quest_note(sanctuary_outcome?"The chamber remembers your choice. Return to Haven; its keeper will hear your story.":"The Listener is a captive memory, not a god demanding worship. R releases its name; B binds a protective ward. Your Monad gives the choice its meaning.");return 0;}
