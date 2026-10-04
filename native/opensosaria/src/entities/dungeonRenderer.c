@@ -14,6 +14,14 @@
 #include "data/enemy.h"
 #include "entities/ui/uiConsole.h"
 
+#ifdef CR_ORIGINAL
+/* Rendering must not overwrite the player's action/conversation message. */
+#define uiConsole_queueMessageFormat(...) ((void)0)
+#endif
+static int safeTile(int x,int y) {
+  if(x<0||x>=OS_DUNGEON_MAP_WIDTH||y<0||y>=OS_DUNGEON_MAP_HEIGHT)return 1;
+  return dungeonMap[x][y];
+}
 static uint8_t dungeonScreen[OS_SCREEN_WIDTH * OS_SCREEN_HEIGHT * 4] = {0};
 static GLuint dungeonTextureID;
 static Geometry dungeonGeometry;
@@ -108,15 +116,15 @@ static void dungeonRenderer_hgrColoring() {
 }
 
 static int dungeonRenderer_getLeftTile(int distance) {
-  return dungeonMap[player.px + player.dx * distance + player.dy][player.py + player.dy * distance - player.dx] % 100;
+  return safeTile(player.px + player.dx * distance + player.dy,player.py + player.dy * distance - player.dx) % 100;
 }
 
 static int dungeonRenderer_getRightTile(int distance) {
-  return dungeonMap[player.px + player.dx * distance - player.dy][player.py + player.dy * distance + player.dx] % 100;
+  return safeTile(player.px + player.dx * distance - player.dy,player.py + player.dy * distance + player.dx) % 100;
 }
 
 static int dungeonRenderer_getFrontTile(int distance) {
-  return dungeonMap[player.px + player.dx * distance][player.py + player.dy * distance] % 100;
+  return safeTile(player.px + player.dx * distance,player.py + player.dy * distance) % 100;
 }
 
 static void dungeonRenderer_renderChest(int distance) {
@@ -136,7 +144,7 @@ void dungeonRenderer_update() {
   dungeonRenderer_clear();
   bool shouldBreak = false;
 
-  for (int distance=0;distance<OS_DUNGEON_TABLE_HEIGHT;distance++) {
+  for (int distance=0;distance<OS_DUNGEON_TABLE_HEIGHT-1;distance++) {
     int centerTile = dungeonRenderer_getFrontTile(distance);
     int leftTile = dungeonRenderer_getLeftTile(distance);
     int rightTile = dungeonRenderer_getRightTile(distance);
@@ -307,17 +315,17 @@ void dungeonRenderer_update() {
         uiConsole_queueMessageFormat("^1%s^0", ultimaStrings[844]);
       }
     }
-    int monsterInCell = (int)(dungeonMap[player.px + player.dx * distance][player.py + player.dy * distance] / 100);
+    int monsterInCell = (int)(safeTile(player.px + player.dx * distance,player.py + player.dy * distance) / 100);
     if (monsterInCell < 1) {
       if (shouldBreak) {
         break;
       }
     } else {
-      int B = 79 + dungeonEnemiesHeight[distance-1][0];
+      int B = 79 + dungeonEnemiesHeight[distance>0?distance-1:0][0];
       int C = 139;
       int L = C - l1;
       int R = r1 - C;
-      int H = 2 * dungeonEnemiesHeight[distance-1][0];
+      int H = 2 * dungeonEnemiesHeight[distance>0?distance-1:0][0];
 
       if (monsterInCell + monstersIndex == 32) {
         uiConsole_queueMessageFormat("^1%s^0", ultimaStrings[845]);

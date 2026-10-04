@@ -3,7 +3,7 @@
 An original browser RPG by David Cole, set in The Lion of God universe.
 Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 
-## Chapter 0.4: Haven of the Five Lights
+## Chapter 0.5: The Bound Listener
 
 The primary browser build now runs Open Sosaria's native C overworld systems,
 compiled to WebAssembly/WebGL 2. The Fortune Teller's four-choice reading
@@ -23,8 +23,24 @@ Exploring the inscriptions before accepting the quest is supported.
 Tavian offers free healing and tonics for 10 gold (pouch limit five). Iona gives
 first provisions once, then sells 20 food for 5 gold, capped at 100. Conversations
 and transactions do not advance time; town movement uses upstream food/time
-rules. Active Monad powers, encounters, the deeper dungeon, and party combat
-are still to come.
+rules. After the investigation, interact with the sanctuary stone to enter a
+native first-person labyrinth. Three cyclopean veil horrors guard its passages.
+Find the cache at (3,3), then the Listener at (9,1). Release its name or offer a
+protective ward; each Monad supplies a different interpretation. Rewards are
+once only: 12 XP/8 gold per horror, 15 gold/one tonic from the cache, and 40 XP/20
+gold for the Listener. Return to Meriel for the remembered response.
+
+Dungeon movement and rotation reuse upstream playerDungeon.c; perspective
+walls, ladders, chests and vector creatures use upstream dungeonRenderer.c.
+Original native C encounter rules replace the disk-dependent original combat.
+Successful steps/turns/strikes cost 0.1 food and one time unit. Horrors act only
+on successful movement, rotation, attacks, waiting, or tonic use. Each adjacent
+horror deals four vitality per action; attacks ahead deal 8 + Strength/5.
+Blocked movement and attacks without a target spend no turn. The plan at the
+bottom shows you in cyan, horrors red, entrance gold, cache green, Listener
+violet. Idle time never advances combat. At zero vitality or food, E recalls
+you to Haven with 50 vitality/20 food for up to ten gold, keeping dungeon progress.
+Active Monad abilities, procedural floors, equipment and party combat are future work.
 
 The earlier five-floor JavaScript dungeon remains playable at
 **legacy/index.html**, with its separate save format and original rules.
@@ -39,8 +55,11 @@ WebGL 2 must be available. No Ultima disks or extracted game assets are needed.
 For the standalone downloadable build, open **play.html**. It embeds the card
 portraits, UI, and native runtime and works offline without a server.
 
-- Arrows / WASD or the touch pad: move one step.
+- Arrows / WASD or the touch pad: move one step on the coast/in town.
+  In the dungeon: up goes forward, left/right turn, down turns around.
 - E / Enter or Interact: enter Haven, read an inscription, or talk beside a resident.
+- F / Strike ahead: attack an adjacent horror you face.
+- R / Release or B / Ward: choose at the Listener’s chamber.
 - Space or Wait: spend a waiting turn.
 - H or Tonic: restore 25 vitality, spending one tonic and a waiting turn.
 - Save / Resume / Export / Import: keep a native journey and its character reading.
@@ -93,6 +112,8 @@ The older prototype can be rebuilt separately with:
 - native/town.c and town.h: Haven map, residents, native dialogue/quest state.
 - native/quest.c: original content/data loader, native player initialization,
   browser API, and frame loop.
+- native/dungeon.c and dungeon.h: original sanctuary map, perspective data, horror
+  vector artwork, encounters, choices, and validated persistence.
 - native/Makefile: explicit sources entering the browser build.
 - native-host.js: Fortune Teller handoff, controls, native stats, and saves.
 - monads.js: ceremony metadata and deterministic reading RNG, not world rules.
@@ -120,7 +141,11 @@ The upstream source is vendored at a pinned checkpoint; this repository is
 not represented as a GitHub fork. Local adaptations include WebGL/GLES headers,
 shaders, the browser frame loop, original content loading, a declaration exposing
 native movement, and wrapped destination lookup before indexing region and
-vehicle tables. That lookup fixes negative and cross-region coordinate access.
+vehicle tables. That lookup fixes negative and cross-region coordinate access. Dungeon movement
+has a one-action entry point that omits idle auto-pass. Renderer tile reads are
+bounded, its terminal perspective row is protected, and distance-zero enemy
+height indexing is safe. In original-content builds, rendering does not replace
+the latest action message. All dungeon tables and creature outlines are original.
 
 The new tile atlas is generated from original small pixel patterns in quest.c.
 It is a placeholder art pass. Card provenance and prompts are in
@@ -141,7 +166,12 @@ journey, exhausted saves, and desktop/landscape/portrait layouts. Both the web
 entry and standalone HTML are exercised. Haven checks exercise six conversations and both quest outcomes across three
 viewport sizes, town save/reload, atomic invalid imports, provisions, tonic
 purchases, single rewards, and upgrading earlier native saves. Town positions,
-quest flags, supplies, tonics, gold, and experience are saved in version 2.
+quest flags, supplies, tonics, gold, and experience are saved. Version 3 also
+stores dungeon facing, cache, enemy positions/health, and the Listener outcome;
+versions 1 and 2 upgrade automatically. `node tests/dungeon-browser.cjs` checks
+all five Monads, both outcomes, native navigation/attacks, once-only rewards,
+blocked movement, dungeon reload, corrupt payload rollback, exit/reentry,
+rescue, and desktop/landscape/portrait layouts.
 Physical Safari/iOS testing remains.
 
 Earlier dungeon checks remain available:
@@ -155,7 +185,7 @@ Earlier dungeon checks remain available:
 
 ## Next native milestones
 
-1. Adapt the dungeon and encounter systems into the same native save/world state.
+1. Expand the native dungeon into procedural floors and richer encounters.
 2. Replace native equipment/spell tables with original definitions.
 3. Add active Monad abilities and further consequences to the persistent world.
 4. Extend the single-character foundation into party/tactical combat.

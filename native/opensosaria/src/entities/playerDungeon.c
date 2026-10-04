@@ -621,3 +621,11 @@ bool playerDungeon_update(float deltaTime) {
 void playerDungeon_free() {
 
 }
+
+#ifdef CR_ORIGINAL
+/* Original browser scene drives one intentional action, without idle auto-pass. */
+bool playerDungeon_step(int action) {
+  if (action == 1) return playerDungeon_updateMovement();
+  return playerDungeon_updateRotation();
+}
+#endif

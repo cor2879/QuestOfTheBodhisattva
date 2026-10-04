@@ -5,6 +5,7 @@
 #include <math.h>
 #include <emscripten.h>
 #include "town.h"
+#include "dungeon.h"
 #include "engine/engine.h"
 #include "engine/texture.h"
 #include "engine/geometry.h"
@@ -73,7 +74,7 @@ EMSCRIPTEN_KEEPALIVE const char *quest_dialogue(void){
  static char out[1800];if(quest_conversation<0){return "null";}const char *text="",*options="";
  switch(quest_conversation){
  case 0:
-  text=quest_stage==0?"I keep Haven's light, but lately it shivers. Caldus heard a voice near the buried sanctuary. Will you learn what is asking to be heard?":quest_stage==1?"Visit the shrine northeast of Haven, then inspect the sanctuary southeast of here. Return with what you learn; do not mistake every unfamiliar voice for an enemy.":quest_stage==2?"You found the words: THE LISTENER IS BOUND. Our fear made us imagine a hungry god. What shall Haven do with this knowledge?":"We have begun preparing a listening vigil. Your discovery has changed how Haven sees the sanctuary. Its deeper passage remains ahead of us.";
+  text=quest_stage==0?"I keep Haven's light, but lately it shivers. Caldus heard a voice near the buried sanctuary. Will you learn what is asking to be heard?":quest_stage==1?"Visit the shrine northeast of Haven, then inspect the sanctuary southeast of here. Return with what you learn; do not mistake every unfamiliar voice for an enemy.":quest_stage==2?"You found the words: THE LISTENER IS BOUND. Our fear made us imagine a hungry god. What shall Haven do with this knowledge?":sanctuary_outcome==1?"The Listener has its name again. Haven will remember that you judged the prison before the prisoner.":sanctuary_outcome==2?"Your ward gives the Listener time to heal. Protection has become a promise of freedom, not another prison.":"Our preparations have opened the sanctuary. Seek the Listener below; return to tell us what you decide.";
   options=quest_stage==0?"[{\"id\":1,\"label\":\"I will investigate the fading light\"},{\"id\":2,\"label\":\"Tell me about Haven\"}]":quest_stage==2?"[{\"id\":3,\"label\":\"Prepare to listen and seek release\"},{\"id\":4,\"label\":\"Prepare a guarded expedition\"}]":"[{\"id\":2,\"label\":\"Tell me about Haven\"}]";break;
  case 1:text="A gift of care is not a debt of obedience. I can mend your wounds freely. A restoring tonic costs ten gold; carry no more than five.";options="[{\"id\":10,\"label\":\"Receive healing\"},{\"id\":11,\"label\":\"Buy a restoring tonic - 10 gold\"}]";break;
  case 2:text=quest_supplies?"Your first provisions are already packed. Further supplies cost five gold for twenty food, up to one hundred.":"Haven offers its first travelers provisions freely. Afterward, twenty food costs five gold. A journey should begin with more than a promise.";options=quest_supplies?"[{\"id\":21,\"label\":\"Buy twenty food - 5 gold\"}]":"[{\"id\":20,\"label\":\"Take the first provisions\"},{\"id\":21,\"label\":\"Buy twenty food - 5 gold\"}]";break;
