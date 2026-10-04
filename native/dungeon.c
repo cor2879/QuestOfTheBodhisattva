@@ -12,6 +12,7 @@
 #include "town.h"
 #include "progression.h"
 #include "chapter.h"
+#include "trail.h"
 #include "data/player.h"
 #include "data/bevery.h"
 #include "data/dungeonEnemy.h"
@@ -168,7 +169,7 @@ void chapter_restore(const char *s){int v[17];const char *payload;if(!chapter_pa
 const char *chapter_default(void){static char out[240],data[180];Dungeon d;generate(&d,1);save_dungeon(data,sizeof(data),&d);snprintf(out,sizeof(out),"1,0,0,0,%s",data);return out;}
 EMSCRIPTEN_KEEPALIVE const char *quest_chapter(void){return chapter_save();}
 EMSCRIPTEN_KEEPALIVE const char *quest_chapter_default(void){return chapter_default();}
-EMSCRIPTEN_KEEPALIVE void quest_set_seed(int seed){archive_seed(seed);}
+EMSCRIPTEN_KEEPALIVE void quest_set_seed(int seed){archive_seed(seed);trail_seed(seed);}
 /* Read-only surveyed native plan for the browser's accessible legend and tests. */
 EMSCRIPTEN_KEEPALIVE const char *quest_active_dungeon(void){static char out[180];save_dungeon(out,sizeof(out),current());return out;}
 EMSCRIPTEN_KEEPALIVE const char *quest_archive_map(void){static char out[122];for(int y=0;y<11;y++)memcpy(out+y*11,archive.cells[y],11);out[121]=0;return out;}

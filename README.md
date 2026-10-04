@@ -3,6 +3,45 @@
 An original browser RPG by David Cole, set in The Lion of God universe.
 Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 
+## Chapter 0.8: Beyond the Lanterns
+
+After answering Haven's Listener, original native actors appear beyond the
+established quest roads. Amber travelers wander near (36,52) and (52,52), a
+hidden spring waits at (41,29), and a fallen star vessel rests at (49,56).
+Violet horrors wander in the southern grasslands, bounded to x31–56/y50–62.
+Haven, Vesper, their shrine, and both dungeon approaches remain outside this
+encounter area. Actor movement advances every third successful coast step;
+idle time, dialogs, town movement and dungeon actions never move them.
+
+Meet Sable or Tessera on their tile or beside them and interact. Their stories
+respond to your Monad, the Listener's answer and Vesper's Choir outcome.
+Read the spring or inspect the vessel while standing on it. Choices and lore
+enter the Road journal, and rewards are one-time:
+
+| Discovery | Choices and rewards |
+| --- | --- |
+| Sable | Share 10 food (must retain some food): 12 XP and a tonic if room; or mark a safe route: 8 XP. |
+| Tessera | Carry remembrance: 10 XP/8 gold; or sanctuary: 10 XP/a tonic if room. |
+| Fivefold Spring | First reading: 20 XP, +15 vitality and full Light. Later readings restore Light without XP or healing. |
+| Fallen vessel | Salvage: star staff (not auto-equipped), 18 XP/15 gold; or offer 5 gold: 25 XP and full Light. |
+
+Three wandering horrors begin at 24, 32 and 40 vitality. Moving beside one,
+or trying to enter its tile, starts a native single-horror duel on the visible
+overworld map. Contact itself has no extra cost or opening attack. **F** strikes,
+**P** uses any Monad gift, **H** uses a tonic, and **G** escapes safely without
+retaliation. Directional movement is paused during the duel. Successful strikes
+and gifts cost 0.1 food/one time unit; waiting, changing gear, tonic use and
+escape cost 0.05 food/0.5 time. Gifts retain their dungeon rules against the
+engaged foe. Staff reach remains a dungeon benefit; both weapons still modify
+duel damage. Base incoming harm is 5/7/9, reduced by the robe and ward.
+
+Each defeated horror awards 18 XP/12 gold once. Survivors retain their wounds
+after fleeing or rescue. Escape and rescue grant three successful coast steps
+without automatic re-engagement. Defeated horrors never respawn in the same
+journey. Gear, Light, temporary combat effects, actor positions, journal choices,
+and an active duel all survive save/reload. Existing saves keep both quests;
+new default spawns are shifted if an older character is standing on their tile.
+
 ## Chapter 0.7: The Unwritten Names
 
 Continue an existing journey: after answering the Bound Listener, travel eleven
@@ -65,8 +104,9 @@ Blocked movement and attacks without a target spend no turn. The plan at the
 bottom shows you in cyan, horrors red, entrance gold, cache green, Listener
 violet. Idle time never advances combat. At zero vitality or food, E recalls
 you to Haven with at least 50 vitality/20 food for up to ten gold, keeping all progress.
-Monad powers, equipment and levels are active in both dungeons. The Archive is
-the first procedural floor; wider-world encounters, deeper floors and party combat remain future work.
+Monad powers, equipment and levels are active in both dungeons and native trail
+duels. The Archive is the first procedural floor; deeper floors, larger regions
+and party combat remain future work.
 
 The earlier five-floor JavaScript dungeon remains playable at
 **legacy/index.html**, with its separate save format and original rules.
@@ -86,6 +126,7 @@ portraits, UI, and native runtime and works offline without a server.
 - E / Enter or Interact: enter Haven, read an inscription, or talk beside a resident.
 - F / Strike ahead: attack a horror in your weapon’s forward reach.
 - P / Monad gift: spend three Light to use your spiritual gift.
+- G / Escape duel: withdraw without retaliation; the horror keeps its wounds.
 - Equipment: choose owned gear; Iona sells it and the cache grants a robe.
 - R / Release or B / Ward: choose at the Listener’s chamber; remember or shelter
   the Choir in the Archive.
@@ -195,7 +236,13 @@ Equipment to switch owned weapons/clothes. A dungeon equipment change costs a
 waiting turn and lets horrors act; changing gear in town/on the coast is free.
 Temporary effects clear on exiting the dungeon or rescue; gear and Light persist.
 
-Native save version five adds Vesper's testimony, preparation and ending, plus
+Native save version six adds the independent coast payload: roaming positions,
+living/dead/wounded horrors, active duel, cooldown and discovery choices.
+Versions one through five upgrade automatically, retaining both chapters and
+equipment/Light when present. Active duel effects are validated with the encounter
+before either is restored. Invalid imports leave the current journey untouched.
+
+Native save version five added Vesper's testimony, preparation and ending, plus
 the independent Archive seed/encounter/cache state. Versions one through four
 upgrade without resetting the character or either existing quest. Version four
 keeps Light and equipment; earlier versions receive full Light and starting gear.
@@ -227,6 +274,8 @@ The older prototype can be rebuilt separately with:
 - native/town.c and town.h: Haven map, residents, native dialogue/quest state.
 - native/chapter.c and chapter.h: Vesper's original residents, testimony,
   branching preparation, remembered ending and one-time return reward.
+- native/trail.c and trail.h: original coast actors/sprites, wandering rules,
+  intentional-turn duels, discoveries, rewards and validated trail persistence.
 - native/quest.c: original content/data loader, native player initialization,
   browser API, and frame loop.
 - native/dungeon.c and dungeon.h: original sanctuary, seeded Archive generation,
@@ -297,8 +346,14 @@ repeatable maps and non-overlapping cache/horrors. It follows the new quest with
 all five Monads through native town movement, both witnesses, both preparations,
 both endings (including changing one's mind), combat, cache, return reward,
 scene-3/scene-4 save/reload, invalid-import rollback and rescue from both scenes.
-Desktop, landscape and portrait layouts are checked. Chapter 0.6 has been
-played successfully on a physical iPhone; Chapter 0.7 still needs that check.
+Desktop, landscape and portrait layouts are checked.
+`node tests/trail-browser.cjs` covers both contact routes, all five combat gifts,
+active-effect reload, escape, equipment/tonic costs, death and food exhaustion,
+rescue preserving wounds, repeatable roaming, invalid trail imports, old saves
+standing on new spawn tiles, every discovery branch, one-time rewards, remembered
+lore and the saved journal. Screenshots are decoded in the browser to confirm
+that native horror, traveler and discovery markers actually render.
+Chapters 0.6 and 0.7 have passed the user's playtests; Chapter 0.8 needs that check.
 
 Earlier dungeon checks remain available:
 

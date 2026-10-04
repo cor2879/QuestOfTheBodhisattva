@@ -8,6 +8,7 @@
 #include "dungeon.h"
 #include "progression.h"
 #include "chapter.h"
+#include "trail.h"
 #include "engine/engine.h"
 #include "engine/texture.h"
 #include "engine/geometry.h"
@@ -79,7 +80,7 @@ void haven_render(void){
 int haven_interact(void){for(int i=0;i<6;i++)if(abs(player.px-positions[i][0])+abs(player.py-positions[i][1])==1){quest_conversation=i;return 1;}quest_note(quest_location==3?"Stand beside a resident and interact. Maera waits in the northern hall.":"Stand beside a resident and interact. Meriel is in the northern temple.");return 0;}
 EMSCRIPTEN_KEEPALIVE void quest_close_conversation(void){quest_conversation=-1;}
 EMSCRIPTEN_KEEPALIVE const char *quest_dialogue(void){
- static char out[1800];if(quest_conversation<0){return "null";}if(quest_location==3)return vesper_dialogue(quest_conversation);const char *text="",*options="";
+ static char out[1800];if(quest_conversation<0){return "null";}if(quest_conversation>=6)return trail_dialogue(quest_conversation,quest_get_monad());if(quest_location==3)return vesper_dialogue(quest_conversation);const char *text="",*options="";
  switch(quest_conversation){
  case 0:
   text=quest_stage==0?"I keep Haven's light, but lately it shivers. Caldus heard a voice near the buried sanctuary. Will you learn what is asking to be heard?":quest_stage==1?"Visit the shrine northeast of Haven, then inspect the sanctuary southeast of here. Return with what you learn; do not mistake every unfamiliar voice for an enemy.":quest_stage==2?"You found the words: THE LISTENER IS BOUND. Our fear made us imagine a hungry god. What shall Haven do with this knowledge?":sanctuary_outcome==1?"The Listener has its name again. Haven will remember that you judged the prison before the prisoner.":sanctuary_outcome==2?"Your ward gives the Listener time to heal. Protection has become a promise of freedom, not another prison.":"Our preparations have opened the sanctuary. Seek the Listener below; return to tell us what you decide.";
@@ -96,6 +97,7 @@ EMSCRIPTEN_KEEPALIVE const char *quest_dialogue(void){
 }
 EMSCRIPTEN_KEEPALIVE int quest_option(int choice){
  if(quest_conversation<0)return 0;
+ if(quest_conversation>=6)return trail_option(quest_conversation,choice,quest_get_monad());
  if(quest_location==3&&quest_conversation!=1&&quest_conversation!=2)return vesper_option(quest_conversation,choice);
  if(quest_conversation==0&&choice==1&&quest_stage==0){quest_stage=(quest_clue&&quest_blessing)?2:1;quest_note("Quest accepted: inspect the shrine and sanctuary, then return to Meriel.");}
  else if(quest_conversation==0&&choice==2){quest_note("Meriel: Haven began as a refuge where no traveler had to surrender their name to belong.");}

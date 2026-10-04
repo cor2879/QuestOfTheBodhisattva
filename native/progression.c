@@ -8,6 +8,7 @@
 #include "progression.h"
 #include "town.h"
 #include "dungeon.h"
+#include "trail.h"
 #include "data/player.h"
 int quest_light=8,quest_owned=0,quest_ward=0,quest_veil=0,quest_focus=0,quest_stun[3]={0};
 int quest_level_for(int xp){return xp>=240?6:xp>=160?5:xp>=100?4:xp>=60?3:xp>=25?2:1;}
@@ -26,9 +27,10 @@ EMSCRIPTEN_KEEPALIVE int quest_equip(int slot,int item){
  if(slot==0){if(item<0||item>2||(item&&!(quest_owned&(item==1?1:2)))||player.weapon==item)return 0;player.weapon=item;}
  else if(slot==1){if(item<0||item>1||(item&&!(quest_owned&4))||player.armor==item)return 0;player.armor=item;}
  else return 0;
- quest_note("Equipment changed. In the dungeon, changing gear gives the horrors a turn.");
+ quest_note("Equipment changed. During dungeon combat or a trail duel, changing gear gives horrors a turn.");
  /* Scene action 13 applies the waiting cost and enemy response once. */
  if(quest_location==2||quest_location==4)return sanctuary_action(13,0);
+ if(trail_enemy)return trail_action(13,0);
  return 0;
 }
 const char *quest_progress_save(void){static char out[100];snprintf(out,sizeof(out),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",quest_light,quest_owned,player.weapon,player.armor,quest_ward,quest_veil,quest_focus,quest_stun[0],quest_stun[1],quest_stun[2]);return out;}

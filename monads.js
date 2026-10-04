@@ -8,11 +8,11 @@ const PATRONS={
 };
 function rng(seed){let n=2166136261;for(const c of String(seed)){n^=c.charCodeAt(0);n=Math.imul(n,16777619);}return()=>{n+=0x6D2B79F5;let t=Math.imul(n^(n>>>15),1|n);t^=t+Math.imul(t^(t>>>7),61|t);return((t^(t>>>14))>>>0)/4294967296;};}
 const gifts={
- ariel:['Verdant Ward','Restore 5 vitality and halve harm for the cast and two more enemy turns. Dungeon only.'],
- samael:['Severance','Strike a horror up to 3 cells straight ahead through a clear passage for 16 + twice your level harm. Dungeon only.'],
- raphael:['Restoring Light','Restore 30 + twice your level vitality. In the dungeon, halve harm on the casting turn. Requires a wound.'],
- jophiel:['Revelation','Stun horrors within 3 cells for the cast and two more turns; add 4 + your level harm to your next strike. Dungeon only.'],
- lilith:['Veil of Sovereignty','Horrors cannot move or attack for the cast and two more turns. Your next strike breaks the veil and adds 8 + your level harm. Dungeon only.']
+ ariel:['Verdant Ward','Restore 5 vitality and halve harm for the cast and two more enemy turns. Dungeons and trail duels.'],
+ samael:['Severance','Strike a horror up to 3 cells straight ahead through a clear passage for 16 + twice your level harm. Dungeons and trail duels.'],
+ raphael:['Restoring Light','Restore 30 + twice your level vitality. In combat, halve harm on the casting turn. Requires a wound.'],
+ jophiel:['Revelation','Stun horrors within 3 cells for the cast and two more turns; add 4 + your level harm to your next strike. Dungeons and trail duels.'],
+ lilith:['Veil of Sovereignty','Horrors cannot move or attack for the cast and two more turns. Your next strike breaks the veil and adds 8 + your level harm. Dungeons and trail duels.']
 };
 for(const[id,p]of Object.entries(PATRONS)){p.native=true;p.power=gifts[id][0];p.description=gifts[id][1]+' Costs 3 Light. Recharge by resting outside the dungeon, at the shrine, or with either town’s healer.';p.cost=3;p.hp=100;p.attack='native';}
 
