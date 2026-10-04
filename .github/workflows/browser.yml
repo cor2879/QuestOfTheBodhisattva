@@ -1,4 +1,4 @@
-name: Build, test, and publish browser game
+name: Browser build and deploy
 
 on:
   push:
