@@ -3,7 +3,7 @@
 An original browser RPG by David Cole, set in The Lion of God universe.
 Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 
-## Chapter 0.5: The Bound Listener
+## Chapter 0.6: Gifts and Growth
 
 The primary browser build now runs Open Sosaria's native C overworld systems,
 compiled to WebAssembly/WebGL 2. The Fortune Teller's four-choice reading
@@ -28,19 +28,19 @@ native first-person labyrinth. Three cyclopean veil horrors guard its passages.
 Find the cache at (3,3), then the Listener at (9,1). Release its name or offer a
 protective ward; each Monad supplies a different interpretation. Rewards are
 once only: 12 XP/8 gold per horror, 15 gold/one tonic from the cache, and 40 XP/20
-gold for the Listener. Return to Meriel for the remembered response.
+gold for the Listener. The cache also grants a warded robe for you to equip. Return to Meriel for the remembered response.
 
 Dungeon movement and rotation reuse upstream playerDungeon.c; perspective
 walls, ladders, chests and vector creatures use upstream dungeonRenderer.c.
 Original native C encounter rules replace the disk-dependent original combat.
 Successful steps/turns/strikes cost 0.1 food and one time unit. Horrors act only
 on successful movement, rotation, attacks, waiting, or tonic use. Each adjacent
-horror deals four vitality per action; attacks ahead deal 8 + Strength/5.
+horror deals four vitality per action; attacks ahead deal 8 + Strength/5 before equipment, level and gift bonuses.
 Blocked movement and attacks without a target spend no turn. The plan at the
 bottom shows you in cyan, horrors red, entrance gold, cache green, Listener
 violet. Idle time never advances combat. At zero vitality or food, E recalls
 you to Haven with at least 50 vitality/20 food for up to ten gold, keeping all progress.
-Active Monad abilities, procedural floors, equipment and party combat are future work.
+Monad powers, equipment and levels are now active. Procedural floors, wider-world encounters and party combat remain future work.
 
 The earlier five-floor JavaScript dungeon remains playable at
 **legacy/index.html**, with its separate save format and original rules.
@@ -58,7 +58,9 @@ portraits, UI, and native runtime and works offline without a server.
 - Arrows / WASD or the touch pad: move one step on the coast/in town.
   In the dungeon: up goes forward, left/right turn, down turns around.
 - E / Enter or Interact: enter Haven, read an inscription, or talk beside a resident.
-- F / Strike ahead: attack an adjacent horror you face.
+- F / Strike ahead: attack a horror in your weapon’s forward reach.
+- P / Monad gift: spend three Light to use your spiritual gift.
+- Equipment: choose owned gear; Iona sells it and the cache grants a robe.
 - R / Release or B / Ward: choose at the Listener’s chamber.
 - Space or Wait: spend a waiting turn.
 - H or Tonic: restore 25 vitality, spending one tonic and a waiting turn.
@@ -123,6 +125,52 @@ The UI retains your 24-character name and reading. The upstream native player
 name field retains its 15-byte limit. Native and earlier dungeon saves are
 separate; importing a dungeon save into this milestone is rejected.
 
+## Native gifts, equipment and growth
+
+All powers cost **3 Light**. Use P or the named touch button. Effects advance
+only on successful enemy turns; idle time and blocked moves do not consume them.
+A three-turn protection or stun includes its casting turn and two further turns.
+
+| Monad | Gift | Effect |
+| --- | --- | --- |
+| Ariel | Verdant Ward | Heal 5 vitality; halve incoming harm for three enemy turns. |
+| Samael | Severance | Hit a horror up to three cells straight ahead through a clear passage for 16 + 2 × level harm. |
+| Raphael | Restoring Light | Heal 30 + 2 × level vitality; halve harm on the casting turn in a dungeon. Can heal outside. Requires a wound. |
+| Jophiel | Revelation | Stun living horrors within three cells for three turns; add 4 + level to the next strike. |
+| Lilith | Veil of Sovereignty | Still horror movement/attacks for three turns; the next strike breaks the veil and adds 8 + level harm. |
+
+Ariel, Samael, Jophiel and Lilith use their gifts in the dungeon. Resting outside
+it restores one Light per waiting turn. The shrine and Tavian restore full Light.
+Gaining a level also refills Light. Vitality remains capped at 100.
+
+| Level | Total experience required | Light capacity | Extra strike damage |
+| --- | --- | --- | --- |
+| 1 | 1 | 8 | 0 |
+| 2 | 25 | 10 | 2 |
+| 3 | 60 | 12 | 4 |
+| 4 | 100 | 14 | 6 |
+
+Level four is this chapter's cap. Level is derived from native experience, so
+older completed journeys receive their earned level on import/resume.
+
+| Equipment | Cost | Effect |
+| --- | --- | --- |
+| Inner light / travel clothes | Starting equipment | Strike reach one; no armor reduction. |
+| Pilgrim blade | 25 gold | +4 strike harm; reach one. |
+| Star staff | 30 gold | +1 strike harm; reach two through a clear passage. |
+| Warded robe | 20 gold, or the unopened sanctuary cache | Reduce each attacking horror's harm by one, before a ward halves the combined harm. |
+
+Purchases equip the item immediately. Each item can be bought only once. Use
+Equipment to switch owned weapons/clothes. A dungeon equipment change costs a
+waiting turn and lets horrors act; changing gear in town/on the coast is free.
+Temporary effects clear on exiting the dungeon or rescue; gear and Light persist.
+
+Native save version four adds Light, owned/equipped gear and temporary effects.
+Versions one through three upgrade with full Light and starting gear; their
+character, experience, quests and dungeon progress are retained. A cache already
+opened in an older version keeps its prior rewards; Iona can sell the new robe.
+Invalid progression imports leave the current journey untouched.
+
 ## Source and build
 
 Install and activate Emscripten (this checkpoint uses 6.0.10), then run:
@@ -138,6 +186,8 @@ The older prototype can be rebuilt separately with:
     python3 tools/build-legacy.py
 
 - native/opensosaria/src: upstream source, including retained unported systems.
+- native/progression.c and progression.h: original native levels, Light, equipment
+  and validated growth/effect persistence in the upstream Player structure.
 - native/town.c and town.h: Haven map, residents, native dialogue/quest state.
 - native/quest.c: original content/data loader, native player initialization,
   browser API, and frame loop.
@@ -197,11 +247,14 @@ viewport sizes, town save/reload, atomic invalid imports, provisions, tonic
 purchases, single rewards, and upgrading earlier native saves. Town positions,
 quest flags, supplies, tonics, gold, and experience are saved. Version 3 also
 stores dungeon facing, cache, enemy positions/health, and the Listener outcome;
-versions 1 and 2 upgrade automatically. `node tests/dungeon-browser.cjs` checks
+versions 1 and 2 upgrade automatically. Version 4 adds the progression payload. `node tests/dungeon-browser.cjs` checks
 all five Monads, both outcomes, native navigation/attacks, once-only rewards,
 blocked movement, dungeon reload, corrupt payload rollback, exit/reentry,
 rescue, and desktop/landscape/portrait layouts.
-Physical Safari/iOS testing remains.
+`node tests/growth-browser.cjs` exercises all five gifts, costs, effect expiry,
+active-effect reload, equipment transactions and combat, native level boundaries,
+old-save upgrades and invalid progression rollback. The earlier chapter has
+been played successfully on a physical iPhone; this update still needs that check.
 
 Earlier dungeon checks remain available:
 
@@ -215,6 +268,6 @@ Earlier dungeon checks remain available:
 ## Next native milestones
 
 1. Expand the native dungeon into procedural floors and richer encounters.
-2. Replace native equipment/spell tables with original definitions.
-3. Add active Monad abilities and further consequences to the persistent world.
+2. Add more equipment, spells and meaningful loot.
+3. Extend Monad abilities and quest consequences throughout the persistent world.
 4. Extend the single-character foundation into party/tactical combat.

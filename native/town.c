@@ -6,6 +6,7 @@
 #include <emscripten.h>
 #include "town.h"
 #include "dungeon.h"
+#include "progression.h"
 #include "engine/engine.h"
 #include "engine/texture.h"
 #include "engine/geometry.h"
@@ -76,23 +77,26 @@ EMSCRIPTEN_KEEPALIVE const char *quest_dialogue(void){
  case 0:
   text=quest_stage==0?"I keep Haven's light, but lately it shivers. Caldus heard a voice near the buried sanctuary. Will you learn what is asking to be heard?":quest_stage==1?"Visit the shrine northeast of Haven, then inspect the sanctuary southeast of here. Return with what you learn; do not mistake every unfamiliar voice for an enemy.":quest_stage==2?"You found the words: THE LISTENER IS BOUND. Our fear made us imagine a hungry god. What shall Haven do with this knowledge?":sanctuary_outcome==1?"The Listener has its name again. Haven will remember that you judged the prison before the prisoner.":sanctuary_outcome==2?"Your ward gives the Listener time to heal. Protection has become a promise of freedom, not another prison.":"Our preparations have opened the sanctuary. Seek the Listener below; return to tell us what you decide.";
   options=quest_stage==0?"[{\"id\":1,\"label\":\"I will investigate the fading light\"},{\"id\":2,\"label\":\"Tell me about Haven\"}]":quest_stage==2?"[{\"id\":3,\"label\":\"Prepare to listen and seek release\"},{\"id\":4,\"label\":\"Prepare a guarded expedition\"}]":"[{\"id\":2,\"label\":\"Tell me about Haven\"}]";break;
- case 1:text="A gift of care is not a debt of obedience. I can mend your wounds freely. A restoring tonic costs ten gold; carry no more than five.";options="[{\"id\":10,\"label\":\"Receive healing\"},{\"id\":11,\"label\":\"Buy a restoring tonic - 10 gold\"}]";break;
+ case 1:text="A gift of care is not a debt of obedience. I can mend your wounds and restore your Light freely. A restoring tonic costs ten gold; carry no more than five.";options="[{\"id\":10,\"label\":\"Receive healing\"},{\"id\":11,\"label\":\"Buy a restoring tonic - 10 gold\"}]";break;
  case 2:text=quest_supplies?"Your first provisions are already packed. Further supplies cost five gold for twenty food, up to one hundred.":"Haven offers its first travelers provisions freely. Afterward, twenty food costs five gold. A journey should begin with more than a promise.";options=quest_supplies?"[{\"id\":21,\"label\":\"Buy twenty food - 5 gold\"}]":"[{\"id\":20,\"label\":\"Take the first provisions\"},{\"id\":21,\"label\":\"Buy twenty food - 5 gold\"}]";break;
  case 3:text="The voice did not command me. It asked whether anyone could remember its name. I fled, and have wondered ever since whether my fear left someone alone.";options="[{\"id\":30,\"label\":\"Where did you hear it?\"}]";break;
  case 4:text="Our garden thrives where roots share water. The northern shrine was built around that same thought: five lights can belong to one source without becoming the same light.";options="[{\"id\":40,\"label\":\"Tell me about the shrine\"}]";break;
  default:text="I have followed voices that wanted worship, and voices that wanted help. Learn which you are hearing before you offer either a sword or a vow.";options="[{\"id\":50,\"label\":\"What lies beyond the coast?\"}]";break;
  }
+ char shopOptions[1000];
+ if(quest_conversation==2){snprintf(shopOptions,sizeof(shopOptions),"%.*s,{\"id\":22,\"label\":\"Pilgrim blade - 25 gold (+4 strike, reach 1)\"},{\"id\":23,\"label\":\"Star staff - 30 gold (+1 strike, reach 2)\"},{\"id\":24,\"label\":\"Warded robe - 20 gold (-1 harm per horror)\"}]",(int)strlen(options)-1,options);options=shopOptions;}
  snprintf(out,sizeof(out),"{\"name\":\"%s\",\"text\":\"%s\",\"options\":%s}",names[quest_conversation],text,options);return out;
 }
 EMSCRIPTEN_KEEPALIVE int quest_option(int choice){
  if(quest_conversation<0)return 0;
  if(quest_conversation==0&&choice==1&&quest_stage==0){quest_stage=(quest_clue&&quest_blessing)?2:1;quest_note("Quest accepted: inspect the shrine and sanctuary, then return to Meriel.");}
  else if(quest_conversation==0&&choice==2){quest_note("Meriel: Haven began as a refuge where no traveler had to surrender their name to belong.");}
- else if(quest_conversation==0&&(choice==3||choice==4)&&quest_stage==2){quest_stage=3;quest_resolution=choice==3?1:2;player.experience+=25;player.gold+=30;quest_note(choice==3?"Haven prepares a listening vigil. Quest complete: 25 experience and 30 gold.":"Haven prepares a guarded expedition. Quest complete: 25 experience and 30 gold.");}
- else if(quest_conversation==1&&choice==10){player.health=100;quest_note("Tavian restores your vitality. No debt is owed.");}
+ else if(quest_conversation==0&&(choice==3||choice==4)&&quest_stage==2){int oldLevel=quest_level();quest_stage=3;quest_resolution=choice==3?1:2;quest_gain_xp(25);player.gold+=30;quest_reward_note(choice==3?"Haven prepares a listening vigil. Quest complete: 25 experience and 30 gold.":"Haven prepares a guarded expedition. Quest complete: 25 experience and 30 gold.",oldLevel);}
+ else if(quest_conversation==1&&choice==10){player.health=100;quest_recharge();quest_note("Tavian restores your vitality and Light. No debt is owed.");}
  else if(quest_conversation==1&&choice==11){if(player.gold<10||quest_tonics>=5){quest_note("A tonic needs ten gold and space in your pouch (maximum five).");return 0;}player.gold-=10;quest_tonics++;quest_note("A restoring tonic is added to your pouch.");}
  else if(quest_conversation==2&&choice==20){if(quest_supplies){quest_note("Your first provisions have already been collected.");return 0;}quest_supplies=1;player.food=100;quest_note("Iona packs provisions for your journey. Food restored to one hundred.");}
  else if(quest_conversation==2&&choice==21){if(player.gold<5||player.food>=100){quest_note("You need five gold and room for provisions.");return 0;}player.gold-=5;player.food=fminf(100,player.food+20);quest_note("Iona supplies twenty food, up to your carrying limit.");}
+ else if(quest_conversation==2&&choice>=22&&choice<=24)return quest_buy_gear(choice);
  else if(quest_conversation==3&&choice==30)quest_note("Caldus: Eleven steps east and seven south of the coast's first threshold. Inspect the sanctuary stone.");
  else if(quest_conversation==4&&choice==40)quest_note("Senna: The shrine is northeast of Haven. Read its fivefold inscription before judging the voice.");
  else if(quest_conversation==5&&choice==50)quest_note("Aster: The wider realm is still taking shape. First make one place worth returning to.");

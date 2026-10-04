@@ -6,9 +6,11 @@
 #include <emscripten.h>
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 #include "data/enemy.h"
 #include "dungeon.h"
 #include "town.h"
+#include "progression.h"
 #include "data/player.h"
 #include "data/bevery.h"
 #include "data/dungeonEnemy.h"
@@ -59,7 +61,7 @@ void sanctuary_init(void){
  strcpy(ultimaStrings[859],"forward");strcpy(ultimaStrings[860],"Stone or a horror blocks the way.");strcpy(ultimaStrings[865],"turn around");strcpy(ultimaStrings[866],"turn left");strcpy(ultimaStrings[867],"turn right");
 }
 void sanctuary_enter(void){visited=1;quest_location=2;quest_conversation=-1;player.px=1;player.py=9;facing=0;map_sync();camera_setPosition3f(&camera,0,0,10);quest_note("The Bound Listener. Forward advances; left/right turn, down turns around. F strikes ahead. Return to the entrance and E to leave.");}
-void sanctuary_leave(void){quest_location=0;playerOverworld_setCameraFollow();quest_note("You climb to the sanctuary stone. Haven lies northwest; Tavian can heal you.");}
+void sanctuary_leave(void){quest_clear_effects();quest_location=0;playerOverworld_setCameraFollow();quest_note("You climb to the sanctuary stone. Haven lies northwest; Tavian can heal you.");}
 void sanctuary_render(void){
  if(renderDirty){dungeonRenderer_update();
  /* Compact surveyed sanctuary plan in the renderer's unused lower strip. */
@@ -67,28 +69,54 @@ void sanctuary_render(void){
  renderDirty=0;}dungeonRenderer_render(camera_getViewProjectionMatrix(&camera));
 }
 static void enemies_turn(void){
- int damage=0;for(int i=0;i<3;i++){if(enemy[i][2]<=0)continue;int dx=player.px-enemy[i][0],dy=player.py-enemy[i][1];if(abs(dx)+abs(dy)==1){damage+=4;continue;}
+ int damage=0;for(int i=0;i<3;i++){if(enemy[i][2]<=0)continue;if(quest_stun[i]>0){quest_stun[i]--;continue;}if(quest_veil>0)continue;int dx=player.px-enemy[i][0],dy=player.py-enemy[i][1];if(abs(dx)+abs(dy)==1){damage+=player.armor==1?3:4;continue;}
  /* Horrors wake only within three cells, then follow an unobstructed corridor. */
  if(abs(dx)+abs(dy)>3)continue;int nx=enemy[i][0]+(dx>0?1:dx<0?-1:0),ny=enemy[i][1];if(dx==0||sanctuary_solid(nx,ny)){nx=enemy[i][0];ny=enemy[i][1]+(dy>0?1:dy<0?-1:0);}if((nx!=player.px||ny!=player.py)&&!sanctuary_solid(nx,ny)){enemy[i][0]=nx;enemy[i][1]=ny;}
  }
+ if(quest_ward>0){damage=(damage+1)/2;quest_ward--;}if(quest_veil>0)quest_veil--;
  if(damage){player.health-=damage;if(player.health<0)player.health=0;char text[160];snprintf(text,sizeof(text),"The horrors retaliate for %d vitality. %s",damage,player.health?"Strike ahead or retreat.":"Your light falters. E recalls you to Haven; gold pays for the rescue.");quest_note(text);}map_sync();
+}
+static int front_enemy(int range){
+ for(int distance=1;distance<=range;distance++){
+  int x=player.px+player.dx*distance,y=player.py+player.dy*distance;
+  if(!floor_at(x,y))return -1;
+  for(int i=0;i<3;i++)if(enemy[i][2]>0&&enemy[i][0]==x&&enemy[i][1]==y)return i;
+ }return -1;
+}
+static void harm(int target,int damage){
+ int oldLevel=quest_level();enemy[target][2]-=damage;
+ if(enemy[target][2]<=0){enemy[target][2]=0;quest_stun[target]=0;quest_gain_xp(12);player.gold+=8;quest_reward_note("The horror dissolves. Twelve experience and eight gold.",oldLevel);}
+ else quest_note("Your light wounds the horror.");
+}
+static int power(int monad){
+ if(quest_light<3){quest_note("Your gift needs three Light. Rest on the coast or visit Tavian/the shrine.");return 0;}
+ if(monad==0){quest_ward=3;player.health=fminf(100,player.health+5);quest_note("Ariel's Verdant Ward restores five vitality and halves harm for this and two further enemy turns.");}
+ else if(monad==1){int target=front_enemy(3);if(target<0){quest_note("Severance needs a horror within three cells straight ahead, with a clear passage.");return 0;}quest_light-=3;harm(target,16+2*quest_level());player_consumeDungeonFood();return 1;}
+ else if(monad==2){if(player.health>=100){quest_note("Restoring Light needs a wound.");return 0;}player.health=fminf(100,player.health+30+2*quest_level());quest_ward=1;quest_note("Raphael's Restoring Light heals your wounds and halves harm this turn.");}
+ else if(monad==3){int count=0;for(int i=0;i<3;i++)if(enemy[i][2]>0&&abs(enemy[i][0]-player.px)+abs(enemy[i][1]-player.py)<=3){quest_stun[i]=3;count++;}if(!count){quest_note("Revelation needs a horror within three cells of you.");return 0;}quest_focus=4+quest_level();quest_note("Jophiel's Revelation stuns nearby horrors for this and two further turns, and empowers your next strike.");}
+ else if(monad==4){quest_veil=3;quest_focus=8+quest_level();quest_note("Lilith's Veil of Sovereignty stills the horrors for this and two further turns. Your next strike breaks the veil and gains harm.");}
+ else return 0;
+ quest_light-=3;player_consumeDungeonFood();return 1;
 }
 int sanctuary_action(int action,int monad){
  if(action==11){enemies_turn();return 0;}
+ if(!player_isAlive()&&action!=6)return 0;
+ if(action==13){player_waitPenalty();enemies_turn();if(player.food<0)player.food=0;return 1;}
  if(action==6){
   if(player.px==1&&player.py==9){sanctuary_leave();return 0;}
-  if(player.px==3&&player.py==3&&!chest){chest=1;player.gold+=15;if(quest_tonics<5)quest_tonics++;map_sync();quest_note("A pilgrim's cache: fifteen gold and a tonic if your pouch has room.");return 0;}
+  if(player.px==3&&player.py==3&&!chest){chest=1;quest_owned|=4;player.armors[1]=1;player.gold+=15;if(quest_tonics<5)quest_tonics++;map_sync();quest_note("A pilgrim's cache: a warded robe (equip it below), fifteen gold, and a tonic if your pouch has room.");return 0;}
   if(player.px==9&&player.py==1){quest_note(sanctuary_outcome?"The chamber remembers your choice. Return to Haven; its keeper will hear your story.":"The Listener is a captive memory, not a god demanding worship. R releases its name; B binds a protective ward. Your Monad gives the choice its meaning.");return 0;}
   quest_note("Seek the Listener in the northeast chamber (9,1). A pilgrim's cache rests at (3,3). E interacts where you stand.");return 0;
  }
  if(action==9||action==10){
   if(player.px!=9||player.py!=1||sanctuary_outcome){quest_note("The choice belongs to the Listener's chamber, and can be made only once.");return 0;}
-  sanctuary_outcome=action==9?1:2;player.experience+=40;player.gold+=20;
-  const char *insights[5]={"Ariel restores a bond between the voice and the living coast.","Samael judges the prison, not the prisoner.","Raphael heals the wound that made captivity seem inevitable.","Jophiel restores a name erased from the world's song.","Lilith offers freedom without demanding allegiance."};char text[256];snprintf(text,sizeof(text),"%s %s Forty experience and twenty gold.",action==9?"The Listener is released.":"A ward protects the Listener while its memory heals.",insights[monad]);quest_note(text);return 0;
+  int oldLevel=quest_level();sanctuary_outcome=action==9?1:2;quest_gain_xp(40);player.gold+=20;
+  const char *insights[5]={"Ariel restores a bond between the voice and the living coast.","Samael judges the prison, not the prisoner.","Raphael heals the wound that made captivity seem inevitable.","Jophiel restores a name erased from the world's song.","Lilith offers freedom without demanding allegiance."};char text[256];snprintf(text,sizeof(text),"%s %s Forty experience and twenty gold.",action==9?"The Listener is released.":"A ward protects the Listener while its memory heals.",insights[monad]);quest_reward_note(text,oldLevel);return 0;
  }
  if(!player_isAlive())return 0;
  int acted=0;if(action>=1&&action<=4){memset(&input,0,sizeof(input));input.up=action==1;input.down=action==2;input.left=action==3;input.right=action==4;acted=playerDungeon_step(action);memset(&input,0,sizeof(input));if(acted){for(int i=0;i<4;i++)if(vectors[i][0]==player.dx&&vectors[i][1]==player.dy)facing=i;}}
- else if(action==8){int target=-1;for(int i=0;i<3;i++)if(enemy[i][2]>0&&enemy[i][0]==player.px+player.dx&&enemy[i][1]==player.py+player.dy)target=i;if(target<0){quest_note("No horror stands immediately ahead. Turn toward it before striking.");return 0;}int hit=8+player.strength/5;enemy[target][2]-=hit;if(enemy[target][2]<0)enemy[target][2]=0;quest_note(enemy[target][2]?"Your light wounds the horror.":"The horror dissolves. Twelve experience and eight gold.");if(!enemy[target][2]){player.experience+=12;player.gold+=8;}player_consumeDungeonFood();acted=1;}
+ else if(action==8){int target=front_enemy(quest_strike_range());if(target<0){quest_note("No horror is in reach straight ahead. Turn toward it before striking.");return 0;}int damage=quest_strike_damage();quest_focus=quest_veil=0;harm(target,damage);player_consumeDungeonFood();acted=1;}
+ else if(action==12){acted=power(monad);}
  else if(action==5){player_waitPenalty();quest_note("You wait; the horrors act.");acted=1;}
  if(acted){enemies_turn();if(player.food<0)player.food=0;}return acted;
 }
