@@ -5,6 +5,26 @@ Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 
 ## Chapter 0.9: The Lost Pilgrim
 
+### Touch and map-view quality of life
+
+Gameplay buttons block text selection, iOS callouts, dragging and browser
+gestures, matching the ASCII Invaders touch protections. Touch/pen presses act
+immediately once; holding or dragging never repeats turns or triggers a second
+button. Compatibility clicks are suppressed; mouse clicks and keyboard
+activation still work. The page can scroll from panel gaps/text, and text inputs
+remain editable. Selection/copying of story and journal text is not disabled.
+
+The **Map zoom** buttons above the directional pad offer **1×, 1.5×, 2× and 3×**.
+1× is the original widest view; Reset returns to it. Zoom changes the native
+camera, not the webpage/canvas layout. Coast views follow the pilgrim; town
+views follow them while clamping to town edges. Dungeons automatically use the
+original full view to preserve corridors and the minimap, then restore the
+chosen zoom on exit. The browser remembers zoom separately from journey saves;
+changing it spends no turns, food or Light and does not affect collisions.
+Normal browser page zoom remains available outside gameplay controls/canvas.
+
+### Seeded adventure
+
 After answering the Listener, ask **Sable near (36,52)** about the missing
 pilgrim. An existing journey can start this adventure; no restart is required.
 The Road journal gives two generated clue coordinates. Inspect both turquoise

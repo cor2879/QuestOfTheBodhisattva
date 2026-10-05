@@ -35,6 +35,17 @@ EnemyDefinition *enemyDefinitions=definitions;
 PLAYER_STATE playerState=PLAYER_STATE_IDLE;
 char *vehicleNames[]={"Foot","Steed","Cart","Raft","Ship","Sky vessel","Shuttle"};
 static int monad=-1,turns=0;
+static float view_zoom=1.0f;
+/* Presentation only: zoom never changes tiles, turns, supplies or saved progress. */
+EMSCRIPTEN_KEEPALIVE double quest_set_zoom(double value){if(isfinite(value))view_zoom=(float)fmax(1.0,fmin(3.0,value));return view_zoom;}
+static void quest_camera_view(void){
+ float zoom=(quest_location==2||quest_location==4)?1.0f:view_zoom,w=280.0f/zoom,h=192.0f/zoom;
+ if(camera.width!=w||camera.height!=h)camera_createOrthogonal(&camera,w,h,0.1f,100.0f);
+ if(quest_location==0)camera_setPosition3f(&camera,(player.tx+1)*14-w/2,(player.ty+1)*16-h/2,10);
+ else if(quest_location==1||quest_location==3){float x=player.px*7+3.5f-w/2,y=player.py*7+3.5f-h/2;camera_setPosition3f(&camera,fmaxf(0,fminf(280-w,x)),fmaxf(0,fminf(192-h,y)),10);}
+ else camera_setPosition3f(&camera,0,0,10);
+}
+EMSCRIPTEN_KEEPALIVE const char *quest_view_state(void){static char out[200];snprintf(out,sizeof(out),"{\"zoom\":%.2f,\"appliedZoom\":%.2f,\"width\":%.2f,\"height\":%.2f,\"x\":%.2f,\"y\":%.2f}",view_zoom,(quest_location==2||quest_location==4)?1.0f:view_zoom,camera.width,camera.height,camera_getX(&camera),camera_getY(&camera));return out;}
 static char message[512]="The Fortune Teller awaits your choice.";
 static const int attributes[5][6]={{14,16,20,14,18,14},{20,18,16,14,14,16},{14,14,20,16,18,18},{12,16,14,18,18,20},{14,20,14,18,16,16}};
 void quest_note(const char *s){snprintf(message,sizeof(message),"%s",s);}
@@ -194,6 +205,7 @@ EMSCRIPTEN_KEEPALIVE int quest_change_equipment(int slot,int item){
 }
 static void frame(void){
  glfwPollEvents();memset(&input,0,sizeof(input));glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+ if(monad>=0)quest_camera_view();
  if(monad>=0){if(quest_location==2||quest_location==4)sanctuary_render();else if(quest_location==1||quest_location==3)haven_render();else{worldMap_update(camera_getViewProjectionMatrix(&camera));trail_render(camera_getViewProjectionMatrix(&camera));quests_render(camera_getViewProjectionMatrix(&camera));playerOverworld_render();}}glfwSwapBuffers(window);
 }
 int main(void){if(!engine_init())return 1;world_create();haven_init();sanctuary_init();trail_init();emscripten_set_main_loop(frame,0,1);return 0;}
