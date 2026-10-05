@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <emscripten.h>
 #include "trail.h"
+#include "art.h"
 #include "town.h"
 #include "dungeon.h"
 #include "chapter.h"
@@ -19,22 +20,18 @@ static int seed=1,steps=0,cooldown=0,sites[4]={0},travelers[2][2]={{36,52},{52,5
 static const int initial[3][3]={{32,55,24},{45,53,32},{55,59,40}};
 static const char *names[3]={"Veil scavenger","Cyclopean wanderer","Hollow sentinel"};
 static const int dirs[4][2]={{0,-1},{1,0},{0,1},{-1,0}};
-static Geometry markers[3];static unsigned int markerTexture;static float transform[16];
+static Geometry markers[6];static unsigned int markerTexture;static float transform[16];
 static int distance(int x,int y){return abs(player.tx-x)+abs(player.ty-y);}
 static int occupied(int x,int y,int skip){for(int i=0;i<3;i++)if(i!=skip&&foes[i][2]>0&&foes[i][0]==x&&foes[i][1]==y)return 1;for(int i=0;i<2;i++)if(travelers[i][0]==x&&travelers[i][1]==y)return 1;return (x==41&&y==29)||(x==49&&y==56);}
 void trail_reset(void){seed=1;steps=cooldown=trail_enemy=0;memset(sites,0,sizeof(sites));memcpy(foes,initial,sizeof(foes));travelers[0][0]=36;travelers[0][1]=52;travelers[1][0]=travelers[1][1]=52;}
 void trail_seed(int value){if(value>0&&!steps)seed=value;}
 void trail_init(void){
- unsigned char pixels[42*16*4]={0};const unsigned int colors[3]={0xe2b879,0x8ad7c0,0xd883b1};
- for(int i=0;i<3;i++)for(int y=1;y<15;y++)for(int x=1;x<13;x++){
-  int shape=i==0?(abs(x-7)<(y<6?2:4)):i==1?(abs(x-7)+abs(y-8)<6):(abs(x-7)<5&&y>3);
-  if(!shape)continue;unsigned int c=colors[i];if(i==2&&y==6&&x>=5&&x<=9)c=0xf4ebc6;
-  int p=(y*42+i*14+x)*4;pixels[p]=c>>16;pixels[p+1]=c>>8;pixels[p+2]=c;pixels[p+3]=255;
- }
- markerTexture=texture_load(42,16,pixels);for(int i=0;i<3;i++)geometry_setSprite(&markers[i],14,16,i/3.0f,0,(i+1)/3.0f,1);matrix4_setIdentity(transform);trail_reset();
+ unsigned char pixels[168*32*4]={0};const int tiles[6]={9,10,11,12,13,14};
+ for(int i=0;i<6;i++)quest_art_copy(pixels,168,i,tiles[i]);
+ markerTexture=texture_load(168,32,pixels);for(int i=0;i<6;i++)geometry_setSprite(&markers[i],14,16,i/6.0f,0,(i+1)/6.0f,1);matrix4_setIdentity(transform);trail_reset();
 }
 static void draw(int type,int x,int y,float *view){matrix4_setPosition(transform,x*14,y*16,3);geometry_render(&markers[type],markerTexture,transform,view);}
-void trail_render(float *view){if(!sanctuary_outcome)return;for(int i=0;i<2;i++)draw(0,travelers[i][0],travelers[i][1],view);draw(1,41,29,view);draw(1,49,56,view);for(int i=0;i<3;i++)if(foes[i][2])draw(2,foes[i][0],foes[i][1],view);}
+void trail_render(float *view){if(!sanctuary_outcome)return;for(int i=0;i<2;i++)draw(0,travelers[i][0],travelers[i][1],view);draw(1,41,29,view);draw(2,49,56,view);for(int i=0;i<3;i++)if(foes[i][2])draw(3+i,foes[i][0],foes[i][1],view);}
 int trail_solid(int x,int y){if(!sanctuary_outcome)return 0;for(int i=0;i<3;i++)if(foes[i][2]>0&&foes[i][0]==x&&foes[i][1]==y)return 1;return 0;}
 int trail_contact(int x,int y){if(!sanctuary_outcome)return 0;for(int i=0;i<3;i++)if(foes[i][2]>0&&foes[i][0]==x&&foes[i][1]==y){trail_enemy=i+1;quest_clear_effects();quest_note("A wandering horror bars your path. F strikes; P invokes your gift; G escapes. Movement and idle time do not advance the duel.");return 1;}return 0;}
 void trail_after_step(void){

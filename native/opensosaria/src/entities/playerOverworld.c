@@ -445,8 +445,13 @@ void playerOverworld_updateGeometry() {
     geometry_free(&playerOverworldGeometry);
   }
 
-  float tx1 = player.vehicle * OS_TILE_WIDTH / (float) ultimaAssets.overworldTiles.width;
-  float tx2 = tx1 + OS_TILE_WIDTH / (float) ultimaAssets.overworldTiles.width;
+#ifdef CR_ORIGINAL
+  const int artScale = 2;
+#else
+  const int artScale = 1;
+#endif
+  float tx1 = player.vehicle * artScale * OS_TILE_WIDTH / (float) ultimaAssets.overworldTiles.width;
+  float tx2 = tx1 + artScale * OS_TILE_WIDTH / (float) ultimaAssets.overworldTiles.width;
   geometry_setSprite(&playerOverworldGeometry, OS_TILE_WIDTH, OS_TILE_HEIGHT, tx1, 0.5f, tx2, 1.0f);
 }
 

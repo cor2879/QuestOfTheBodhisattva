@@ -24,6 +24,7 @@
 #include "progression.h"
 #include "chapter.h"
 #include "trail.h"
+#include "art.h"
 UltimaAssets ultimaAssets;
 char ultimaStrings[1500][41];
 unsigned char vehiclesMap[OS_BTERRA_MAP_WIDTH*2][OS_BTERRA_MAP_HEIGHT*2];
@@ -45,25 +46,14 @@ void uiConsole_queueMessage(const char*s){quest_note(s);}
 void uiConsole_addMessageFormat(const char*f,...){va_list a;va_start(a,f);vsnprintf(message,sizeof(message),f,a);va_end(a);}
 void audio_playAlert(int n){(void)n;}
 /* Original coast encounters are owned by trail.c; disk encounters stay inactive. */
-static unsigned char atlas[14*16*8*2*4];
-static void pixel(int x,int y,unsigned int c){int p=(y*112+x)*4;atlas[p]=c>>16;atlas[p+1]=c>>8;atlas[p+2]=c;atlas[p+3]=255;}
+static unsigned char atlas[224*64*4];
 static void atlas_create(void){
- unsigned int colors[8]={0x24576e,0x315b3f,0x244a34,0x5c6373,0x9c8972,0x65897b,0xab8160,0x3e3a51};
- for(int t=0;t<8;t++)for(int y=0;y<16;y++)for(int x=0;x<14;x++){
-  unsigned int c=colors[t];
-  if(t==0&&y%5==2&&x%7<4)c=0x468b9b;
-  if(t==1&&(x*7+y*3)%23==0)c=0x718860;
-  if(t==2&&y>2&&y<13&&abs(x-7)<y/2)c=0x568353;
-  if(t==3&&y>3&&abs(x-7)<y/2)c=(x<7?0x9a9a98:0x74777f);
-  if(t>=4&&x>2&&x<11&&y>4&&y<14)c=0xc3af8b;
-  if(t==6&&y<7&&y>2&&abs(x-7)<y)c=0x9f594d;
-  if(t==7&&x>4&&x<10&&y>7)c=0x161d29;
-  if(t==5&&abs(x-7)<2&&y>2&&y<13)c=0xe0c88b;
-  pixel(t*14+x,y,c);
+ for(int tile=0;tile<8;tile++){
+  quest_art_copy(atlas,224,tile,tile);
+  quest_art_copy(atlas+224*32*4,224,tile,8);
  }
- for(int y=16;y<32;y++)for(int x=0;x<112;x++){int local=x%14;unsigned int c=0;pixel(x,y,c);atlas[(y*112+x)*4+3]=0;if(local>4&&local<10&&y>18&&y<23)pixel(x,y,0xe6bb89);if(local>3&&local<11&&y>=23&&y<29)pixel(x,y,0xe7cc87);if((local==5||local==9)&&y>=29)pixel(x,y,0xcedad2);}
- ultimaAssets.overworldTiles.width=112;ultimaAssets.overworldTiles.height=32;
- ultimaAssets.overworldTiles.textureId=texture_load(112,32,atlas);
+ ultimaAssets.overworldTiles.width=224;ultimaAssets.overworldTiles.height=64;
+ ultimaAssets.overworldTiles.textureId=texture_load(224,64,atlas);
  ultimaAssets.enemySprites=ultimaAssets.overworldTiles;
 }
 static void world_create(void){
@@ -75,6 +65,11 @@ static void world_create(void){
   else if((x>28&&x<38&&y>31&&y<50)||(x>75&&x<93&&y>38&&y<58))terrain=2;
   ultimaAssets.bterraMaps[(y/86)*2+x/86][y%86][x%86]=(unsigned char)(terrain<<4);
  }
+ /* Visible paths use an already passable native terrain ID. No new gates or costs. */
+ for(int x=39;x<=54;x++)ultimaAssets.bterraMaps[0][40][x]=0x40;
+ for(int y=35;y<40;y++)ultimaAssets.bterraMaps[0][y][47]=0x40;
+ for(int y=41;y<47;y++)ultimaAssets.bterraMaps[0][y][51]=0x40;
+ for(int y=34;y<40;y++)ultimaAssets.bterraMaps[0][y][54]=0x40;
  ultimaAssets.bterraMaps[0][40][43]=0x60; /* Haven */
  ultimaAssets.bterraMaps[0][35][47]=0x50; /* Shrine */
  ultimaAssets.bterraMaps[0][47][51]=0x70; /* Sanctuary */

@@ -52,7 +52,12 @@ int engine_init() {
 #else
   const char *windowTitle = "Open Sosaria 0.6.0";
 #endif
+#ifdef CR_ORIGINAL
+  /* Higher drawing resolution preserves the native camera and collision grid. */
+  window = glfwCreateWindow(OS_SCREEN_WIDTH * 2, OS_SCREEN_HEIGHT * 2, windowTitle, NULL, NULL);
+#else
   window = glfwCreateWindow(OS_SCREEN_WIDTH, OS_SCREEN_HEIGHT, windowTitle, NULL, NULL);
+#endif
   if (!window) {
     fprintf(stderr, "Failed to create window\n");
     glfwTerminate();

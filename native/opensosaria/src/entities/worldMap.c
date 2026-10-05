@@ -21,11 +21,24 @@ void worldMap_init() {
       for (int x=0;x<OS_BTERRA_MAP_WIDTH;x++) {
         uint8_t tile = (uint8_t)((ultimaAssets.bterraMaps[i][y][x] >> 4) & 0x0F);
         
-        float tx1 = (tile * OS_TILE_WIDTH) / (float)ultimaAssets.overworldTiles.width;
+        /* Original artwork has two source pixels per native map unit. */
+#ifdef CR_ORIGINAL
+        const int artScale = 2;
+#else
+        const int artScale = 1;
+#endif
+        float tx1 = (tile * OS_TILE_WIDTH * artScale) / (float)ultimaAssets.overworldTiles.width;
         float ty1 = 0;
-        float tx2 = tx1 + (OS_TILE_WIDTH / (float)ultimaAssets.overworldTiles.width);
-        float ty2 = ty1 + (OS_TILE_HEIGHT / (float)ultimaAssets.overworldTiles.height);
+        float tx2 = tx1 + (OS_TILE_WIDTH * artScale / (float)ultimaAssets.overworldTiles.width);
+        float ty2 = ty1 + (OS_TILE_HEIGHT * artScale / (float)ultimaAssets.overworldTiles.height);
 
+#ifdef CR_ORIGINAL
+        /* Alternate grass orientation without changing native terrain IDs. */
+        if(tile==1){
+          if((x+y)%2){float swap=tx1;tx1=tx2;tx2=swap;}
+          if((x*3+y)%3){float swap=ty1;ty1=ty2;ty2=swap;}
+        }
+#endif
         geometry_addQuad(vertices, verticesCount, indices, indicesCount, x * OS_TILE_WIDTH, y * OS_TILE_HEIGHT, OS_TILE_WIDTH, OS_TILE_HEIGHT, tx1, ty1, tx2, ty2);
         verticesCount += 4;
         indicesCount += 6;

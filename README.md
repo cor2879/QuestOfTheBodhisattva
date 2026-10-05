@@ -313,9 +313,19 @@ bounded, its terminal perspective row is protected, and distance-zero enemy
 height indexing is safe. In original-content builds, rendering does not replace
 the latest action message. All dungeon tables and creature outlines are original.
 
-The new tile atlas is generated from original small pixel patterns in quest.c.
-It is a placeholder art pass. Card provenance and prompts are in
-assets/ARTWORK.md. No fan texture pack has been added.
+The Lantern Coast now uses the first production VGA-inspired art pass: original
+28×32 source tiles, a 560×384 drawing buffer, readable ivory/amber characters,
+distinct wandering horrors, turquoise discoveries, and gold-lit landmarks.
+Visible paths connect the existing quest locations with normal walking costs.
+The logical map and save version remain unchanged. Town interiors and dungeon
+art retain the previous original graphics for a subsequent pass.
+
+The editable atlas, mapping, generation specifications and build workflow are in
+native/assets/ARTWORK.md. Pixel data is embedded in the runtime, so Pages and
+the offline build need no image-fetch initialization. Local original-content
+engine adaptations scale texture coordinates and the drawing buffer while
+preserving the native camera and collision dimensions. Card provenance and
+prompts are in assets/ARTWORK.md. No fan texture pack has been added.
 
 ## Verification
 
