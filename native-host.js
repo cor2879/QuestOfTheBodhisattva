@@ -46,16 +46,18 @@ function nativeUpdate(){
  n$('native-stats').replaceChildren();for(const[key,label]of Object.entries({hp:'Vitality',food:'Food',gold:'Gold',experience:'Experience',level:'Level',light:'Light',strike:'Strike',reach:'Reach',strength:'Strength',agility:'Agility',stamina:'Stamina',charisma:'Charisma',wisdom:'Wisdom',intelligence:'Intelligence',tonics:'Tonics'})){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=s[key];n$('native-stats').append(dt,dd);}
  const first=nativeCall('quest_dungeon','string',[],[]).split(',').map(Number);
  if(first[2])n$('native-quest').textContent=['The Listener has been answered. Vesper lies eleven steps east of Haven at (54,40). Speak with Maera in its northern hall.','The Unwritten Names: hear Neris and Oren, then return to Maera.','Both witnesses are heard. Return to Maera and choose Vesper’s preparation.','The Archive is open at (54,33). Seek the Choir at (9,1); remember its names or shelter them. Return to Maera afterward.','Vesper honors your answer. Both settlements remain open for healing, supplies, and exploration.'][s.vesperStage];
+ const adventure=JSON.parse(nativeCall('quest_engine_state','string',[],[]));
+ if(adventure.stage){const li=document.createElement('li');li.textContent=adventure.name+' · '+adventure.objective;n$('native-journal').append(li);}
  if(s.vesperStage===3&&s.choir)n$('native-quest').textContent=(s.choir===1?'The Choir’s names return.':'The Choir rests beneath your shelter.')+' Return to Maera in Vesper to complete your promise.';
- if(s.vesperStage===4)n$('native-quest').textContent='Beyond the lanterns: explore the hidden spring at (41,29), travelers near (36,52) and (52,52), and the fallen vessel at (49,56). Amber figures are travelers; violet figures are horrors.';
+ if(s.vesperStage===4)n$('native-quest').textContent=adventure.objective;
  nativeNotice(nativeCall('quest_message','string',[],[]).replace(/\^[A-Za-z]?\d/g,''));
 }
-function nativeSaveData(){return{game:'QUEST_BODHISATTVA_OPEN_SOSARIA',version:6,trail:nativeCall('quest_trail','string',[],[]),chapter:nativeCall('quest_chapter','string',[],[]),growth:nativeCall('quest_progress','string',[],[]),dungeon:nativeCall('quest_dungeon','string',[],[]),state:nativeSnapshot(),character:nativeCharacter};}
+function nativeSaveData(){return{game:'QUEST_BODHISATTVA_OPEN_SOSARIA',version:7,engines:nativeCall('quest_engines','string',[],[]),trail:nativeCall('quest_trail','string',[],[]),chapter:nativeCall('quest_chapter','string',[],[]),growth:nativeCall('quest_progress','string',[],[]),dungeon:nativeCall('quest_dungeon','string',[],[]),state:nativeSnapshot(),character:nativeCharacter};}
 function nativeSave(manual=false){if(!nativeCharacter)return;try{localStorage.setItem(NATIVE_KEY,JSON.stringify(nativeSaveData()));if(manual)nativeNotice('Journey saved.');}catch{nativeNotice('Browser storage is unavailable. Export a save to keep your journey.');}}
 function nativeSaved(){try{return localStorage.getItem(NATIVE_KEY);}catch{return null;}}
 function nativeRestore(text){
  const data=JSON.parse(text),s=data.state,c=data.character;
- if(data.game!=='QUEST_BODHISATTVA_OPEN_SOSARIA'||![1,2,3,4,5,6].includes(data.version)||!s||!c||typeof c.name!=='string'||c.name.length>24||!['reading','direct'].includes(c.method)||typeof c.seed!=='string'||c.seed.length>100||!Array.isArray(c.choices)||c.choices.length>4||c.choices.some(x=>!x||typeof x.id!=='string'||!NATIVE_IDS.includes(x.choice))||c.method==='reading'&&c.choices.length!==4)throw Error('Invalid native save');
+ if(data.game!=='QUEST_BODHISATTVA_OPEN_SOSARIA'||![1,2,3,4,5,6,7].includes(data.version)||!s||!c||typeof c.name!=='string'||c.name.length>24||!['reading','direct'].includes(c.method)||typeof c.seed!=='string'||c.seed.length>100||!Array.isArray(c.choices)||c.choices.length>4||c.choices.some(x=>!x||typeof x.id!=='string'||!NATIVE_IDS.includes(x.choice))||c.method==='reading'&&c.choices.length!==4)throw Error('Invalid native save');
  if(data.version===1)Object.assign(s,{location:0,px:0,py:0,quest:0,clue:0,blessing:0,supplies:0,resolution:0,tonics:0});
  const keys=['monad','x','y','hp','food','turn','time','location','px','py','quest','clue','blessing','supplies','resolution','gold','experience','tonics'];
  for(const key of keys)if(typeof s[key]!=='number'||!Number.isFinite(s[key])||!['food','time'].includes(key)&&!Number.isInteger(s[key]))throw Error('Invalid native state');
@@ -65,9 +67,11 @@ function nativeRestore(text){
  if(typeof growth!=='string'||growth.length>100)throw Error('Invalid progression');
  const chapter=data.version>=5?data.chapter:nativeCall('quest_chapter_default','string',[],[]);
  if(typeof chapter!=='string'||chapter.length>220)throw Error('Invalid chapter');
- const trail=data.version===6?data.trail:nativeCall('quest_trail_default','string',['number','number','number'],[s.location,s.x,s.y]);
+ const trail=data.version>=6?data.trail:nativeCall('quest_trail_default','string',['number','number','number'],[s.location,s.x,s.y]);
  if(typeof trail!=='string'||trail.length>240)throw Error('Invalid coast encounters');
- if(!nativeCall('quest_restore_v6','number',[...keys.map(()=> 'number'),'string','string','string','string'],[...keys.map(k=>s[k]),dungeon,growth,chapter,trail]))throw Error('Invalid or impassable saved location');
+ const engines=data.version>=7?data.engines:trail.split(',')[0]+',1,0,0,0';
+ if(typeof engines!=='string'||engines.length>90)throw Error('Invalid quest engine');
+ if(!nativeCall('quest_restore_v7','number',[...keys.map(()=> 'number'),'string','string','string','string','string'],[...keys.map(k=>s[k]),dungeon,growth,chapter,trail,engines]))throw Error('Invalid or impassable saved location');
  nativeCall('quest_set_name',null,['string'],[c.name]);nativeCharacter=c;nativeCloseConversation(false);nativeUpdate();if(n$('welcome').open)n$('welcome').close();nativeCanvas.focus({preventScroll:true});
 }
 function nativeShowConversation(){

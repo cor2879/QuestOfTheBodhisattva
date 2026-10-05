@@ -24,6 +24,7 @@
 #include "progression.h"
 #include "chapter.h"
 #include "trail.h"
+#include "quests.h"
 #include "art.h"
 UltimaAssets ultimaAssets;
 char ultimaStrings[1500][41];
@@ -83,6 +84,7 @@ EMSCRIPTEN_KEEPALIVE int quest_start(int id,const char *name){
  if(quest_location==1||quest_location==3)playerTown_free();quest_location=0;quest_conversation=-1;quest_stage=quest_clue=quest_blessing=quest_supplies=quest_resolution=quest_tonics=0;
  sanctuary_reset();memset(&player,0,sizeof(player));monad=id;turns=0;player.health=100;player.food=100;player.gold=50;player.experience=1;player.tx=40;player.ty=40;player.type=1;
  trail_reset();
+ quests_reset(1);
  snprintf(player.name,sizeof(player.name),"%.15s",name);
  player.strength=attributes[id][0];player.agility=attributes[id][1];player.stamina=attributes[id][2];player.charisma=attributes[id][3];player.wisdom=attributes[id][4];player.intelligence=attributes[id][5];player.weapons[0]=1;
  quest_progress_reset();playerOverworld_init();quest_note("The Lantern Coast. Haven lies three steps east. Seek its keeper.");return 1;
@@ -182,11 +184,16 @@ EMSCRIPTEN_KEEPALIVE int quest_restore_v6(int id,int x,int y,int health,double f
  if(!quest_restore_v5(id,x,y,health,food,turn,time,location,px,py,stage,clue,blessing,supplies,resolution,gold,experience,tonics,dungeon,active[3]?"0,0,0,0,0,0,0,0,0,0":growth,chapter))return 0;
  trail_restore(trail);if(active[3])quest_progress_restore(growth);return 1;
 }
+EMSCRIPTEN_KEEPALIVE int quest_restore_v7(int id,int x,int y,int health,double food,int turn,double time,int location,int px,int py,int stage,int clue,int blessing,int supplies,int resolution,int gold,int experience,int tonics,const char *dungeon,const char *growth,const char *chapter,const char *trail,const char *engines){
+ int first[3];if(!sanctuary_valid(dungeon,-1,-1)||sscanf(dungeon,"%d,%d,%d",first,first+1,first+2)!=3||!quests_valid(engines,first[2],id))return 0;
+ if(!quest_restore_v6(id,x,y,health,food,turn,time,location,px,py,stage,clue,blessing,supplies,resolution,gold,experience,tonics,dungeon,growth,chapter,trail))return 0;
+ quests_restore(engines);return 1;
+}
 EMSCRIPTEN_KEEPALIVE int quest_change_equipment(int slot,int item){
  if(monad<0)return 0;int acted=quest_equip(slot,item);if(acted)turns++;return acted;
 }
 static void frame(void){
  glfwPollEvents();memset(&input,0,sizeof(input));glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
- if(monad>=0){if(quest_location==2||quest_location==4)sanctuary_render();else if(quest_location==1||quest_location==3)haven_render();else{worldMap_update(camera_getViewProjectionMatrix(&camera));trail_render(camera_getViewProjectionMatrix(&camera));playerOverworld_render();}}glfwSwapBuffers(window);
+ if(monad>=0){if(quest_location==2||quest_location==4)sanctuary_render();else if(quest_location==1||quest_location==3)haven_render();else{worldMap_update(camera_getViewProjectionMatrix(&camera));trail_render(camera_getViewProjectionMatrix(&camera));quests_render(camera_getViewProjectionMatrix(&camera));playerOverworld_render();}}glfwSwapBuffers(window);
 }
 int main(void){if(!engine_init())return 1;world_create();haven_init();sanctuary_init();trail_init();emscripten_set_main_loop(frame,0,1);return 0;}

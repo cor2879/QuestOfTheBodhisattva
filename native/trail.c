@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <emscripten.h>
 #include "trail.h"
+#include "quests.h"
 #include "art.h"
 #include "town.h"
 #include "dungeon.h"
@@ -65,7 +66,7 @@ int trail_action(int action,int monad){
  }else{int damage=quest_strike_damage();quest_focus=quest_veil=0;player_consumeDungeonFood();if(!harm(damage))retaliation();if(player.food<0)player.food=0;return 1;}
  player_consumeDungeonFood();retaliation();if(player.food<0)player.food=0;return 1;
 }
-int trail_interact(void){if(!sanctuary_outcome)return 0;for(int i=0;i<2;i++)if(distance(travelers[i][0],travelers[i][1])<=1){quest_conversation=6+i;return 1;}if(distance(41,29)==0){quest_conversation=8;return 1;}if(distance(49,56)==0){quest_conversation=9;return 1;}return 0;}
+int trail_interact(void){if(!sanctuary_outcome)return 0;if(quests_interact())return 1;for(int i=0;i<2;i++)if(distance(travelers[i][0],travelers[i][1])<=1){quest_conversation=6+i;return 1;}if(distance(41,29)==0){quest_conversation=8;return 1;}if(distance(49,56)==0){quest_conversation=9;return 1;}return 0;}
 const char *trail_dialogue(int resident,int monad){
  static char out[1900],text[1200];int site=resident-6;if(site<0||site>3)return "null";const char *name,*options;
  const char *insights[5]={"Ariel sees a bond that may grow without possession.","Samael judges the binding before the bound.","Raphael leaves room for a wound to heal in its own time.","Jophiel finds beauty in a name allowed to be spoken freely.","Lilith offers belonging without demanding obedience."};
@@ -73,9 +74,11 @@ const char *trail_dialogue(int resident,int monad){
  else if(site==1){name="Tessera, Weaver of Road Stories";snprintf(text,sizeof(text),"%s %s %s",sites[1]?"Tessera remembers the message you chose to carry.":"What story should the next traveler hear?",vesper_outcome==1?"Vesper's names have returned by invitation.":vesper_outcome==2?"Vesper shelters its names behind a door their keepers may open.":"Vesper has not yet given the Choir its answer.",insights[monad]);options=sites[1]?"[]":"[{\"id\":84,\"label\":\"Carry a story of remembrance - 10 experience, 8 gold\"},{\"id\":85,\"label\":\"Carry a promise of sanctuary - 10 experience, a tonic\"}]";}
  else if(site==2){name="The Fivefold Spring";snprintf(text,sizeof(text),"Five lights share a source without becoming the same flame. %s %s",insights[monad],sites[2]?"The inscription is already in your journal; its waters may restore Light again.":"Read the hidden inscription to restore Light and fifteen vitality, and gain twenty experience once.");options="[{\"id\":83,\"label\":\"Read the inscription and restore Light\"}]";}
  else{name="A Vessel Fallen from the Stars";snprintf(text,sizeof(text),"%s %s",sites[3]?"The fallen vessel remembers your answer. No second reward waits here.":"Within a shattered vessel rests a star staff. Salvage it, or leave five gold to make this a place of shelter.",insights[monad]);options=sites[3]?"[]":"[{\"id\":86,\"label\":\"Salvage: star staff, 15 gold, 18 experience\"},{\"id\":87,\"label\":\"Offer 5 gold: restore Light, 25 experience\"}]";}
+ char expanded[900];if(site==0){snprintf(expanded,sizeof(expanded),"%.*s%s]",(int)strlen(options)-1,options,quests_sable_options());options=expanded;size_t used=strlen(text);snprintf(text+used,sizeof(text)-used,"%s",quests_sable_text());}
  snprintf(out,sizeof(out),"{\"name\":\"%s\",\"text\":\"%s\",\"options\":%s}",name,text,options);return out;
 }
 int trail_option(int resident,int choice,int monad){
+ if(choice>=100)return quests_option(resident,choice,monad);
  (void)monad;int site=resident-6,before=quest_level();if(site<0||site>3)return 0;
  if(site==0&&choice==82){quest_note("Sable: The Fivefold Spring lies at (41,29), six north and six west of the northern shrine. Southern travelers roam near (36,52) and (52,52); a star vessel fell at (49,56).");return 1;}
  if(site==2&&choice==83){quest_recharge();if(!sites[2]){sites[2]=1;player.health+=15;if(player.health>100)player.health=100;quest_gain_xp(20);quest_reward_note("The hidden spring restores fifteen vitality and Light. Twenty experience; its lore enters your road journal.",before);}else quest_note("The spring restores your Light. Its lore has already been learned.");return 1;}

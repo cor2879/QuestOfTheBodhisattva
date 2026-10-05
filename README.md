@@ -3,6 +3,47 @@
 An original browser RPG by David Cole, set in The Lion of God universe.
 Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 
+## Chapter 0.9: The Lost Pilgrim
+
+After answering the Listener, ask **Sable near (36,52)** about the missing
+pilgrim. An existing journey can start this adventure; no restart is required.
+The Road journal gives two generated clue coordinates. Inspect both turquoise
+tokens with **E**, then seek the amber pilgrim at the revealed refuge. Return
+to Sable after resolving the binding for 45 XP, 20 gold and a tonic if room.
+The reward cannot repeat.
+
+This first native quest engine combines six pilgrim names, three bindings, and
+three distinct sites selected from six reachable northern clearings. It uses
+the new-game seed: revisiting, saving, importing and rescue never reroll it.
+The authored Haven and Vesper quests and existing graphics remain unchanged.
+Clues can be read in either order; finding the refuge early cannot bypass them.
+Listening lets the pilgrim choose a way out, without resources or violence.
+Alternatively, spend three Light on your Monad's distinctive intervention:
+
+| Monad | Resolution |
+| --- | --- |
+| Ariel | Grow a living bridge beyond the binding. |
+| Samael | Sever the false covenant, not the pilgrim. |
+| Raphael | Heal the wound on which the binding feeds. |
+| Jophiel | Reveal the imperfect, beautiful self behind the mirror. |
+| Lilith | Open a door without an oath of obedience. |
+
+Both routes award the same reward; the chosen resolution persists separately.
+These are narrative resolutions, not five new combat powers or generated maps.
+The first engine deliberately uses a verified location pool rather than
+unconstrained terrain generation. The second engine, The Broken Sanctuary,
+is planned, not included in this release.
+
+`native/quests.c` owns the engine registry, stable seeded layout, clue and
+resolution state, markers, dialogue and strict save validation. Save version 7
+adds `engines` CSV: seed, engine ID, stage, clue mask, resolution. Older native
+saves 1–6 migrate to an unstarted Lost Pilgrim using their coast seed (1 for
+pre-coast saves), preserving previous progress. Future engine IDs must supply
+their own generation, progression and validators; preserve engine 1's layout
+algorithm for saved journeys. Tests prove all five Monad routes, the free route
+at zero Light, atomic invalid imports, one-time rewards, mobile/desktop resume,
+and deterministic connected sites across 256 seeds.
+
 ## Chapter 0.8: Beyond the Lanterns
 
 After answering Haven's Listener, original native actors appear beyond the
