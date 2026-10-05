@@ -279,7 +279,9 @@ The older prototype can be rebuilt separately with:
 - native/quest.c: original content/data loader, native player initialization,
   browser API, and frame loop.
 - native/dungeon.c and dungeon.h: original sanctuary, seeded Archive generation,
-  perspective data, horror vector artwork, encounters, choices and validated persistence.
+  perspective data, encounters, choices and validated persistence.
+- native/art.c and art-dungeon.c: embedded original atlases and textured presentation
+  using native dungeon perspective/visibility tables.
 - native/Makefile: explicit sources entering the browser build.
 - native-host.js: Fortune Teller handoff, controls, native stats, and saves.
 - monads.js: ceremony metadata and deterministic reading RNG, not world rules.
@@ -317,8 +319,16 @@ The Lantern Coast now uses the first production VGA-inspired art pass: original
 28×32 source tiles, a 560×384 drawing buffer, readable ivory/amber characters,
 distinct wandering horrors, turquoise discoveries, and gold-lit landmarks.
 Visible paths connect the existing quest locations with normal walking costs.
-The logical map and save version remain unchanged. Town interiors and dungeon
-art retain the previous original graphics for a subsequent pass.
+The logical map and save version remain unchanged. The second art pass brings
+warm stone, wood, flowers and a temple mosaic to Haven, with cooler slate and
+violet memorial paving in Vesper. Six distinct resident outfits and a larger
+player billboard share the existing town collision grid.
+
+Dungeon interiors now show shaded masonry, perspective flagstones, original
+horror sprites, supply chests, gold exit steps, and the benevolent Listener/Choir.
+Open Sosaria's native perspective tables and map control visibility; walls
+occlude sprites. This changes presentation, not dungeon generation, combat or
+quest rules. Existing native saves load directly.
 
 The editable atlas, mapping, generation specifications and build workflow are in
 native/assets/ARTWORK.md. Pixel data is embedded in the runtime, so Pages and

@@ -9,6 +9,7 @@
 #include "progression.h"
 #include "chapter.h"
 #include "trail.h"
+#include "art.h"
 #include "engine/engine.h"
 #include "engine/texture.h"
 #include "engine/geometry.h"
@@ -24,7 +25,7 @@
 int quest_location=0,quest_stage=0,quest_clue=0,quest_blessing=0,quest_supplies=0,quest_resolution=0,quest_tonics=0,quest_conversation=-1;
 static const int positions[6][2]={{20,6},{9,7},{30,7},{9,15},{30,15},{20,13}};
 static const char *names[6]={"Meriel, Keeper of Haven","Tavian, Healer","Iona, Outfitter","Caldus, Witness","Senna, Gardener","Aster, Traveler"};
-static unsigned char townPixels[280*192*4],peoplePixels[49*7*4];
+static unsigned char townPixels[560*384*4],peoplePixels[196*32*4];
 static Geometry background,people[6];
 static float transform[16];
 static GLuint townTexture[2];
@@ -41,40 +42,49 @@ bool sceneTown_isSolid(int x,int y){
  return false;
 }
 int haven_valid_position(int x,int y){return x>=0&&x<40&&y>=0&&y<22&&!sceneTown_isSolid(x,y);}
-static void put(int x,int y,unsigned int c){int p=(y*280+x)*4;townPixels[p]=c>>16;townPixels[p+1]=c>>8;townPixels[p+2]=c;townPixels[p+3]=255;}
+static void put(int x,int y,unsigned int c){int p=(y*560+x)*4;townPixels[p]=c>>16;townPixels[p+1]=c>>8;townPixels[p+2]=c;townPixels[p+3]=255;}
 static void wall(int x,int y){ultimaAssets.townCollisionMap[y][x]=1;}
 static void house(int left,int top,int right,int bottom,int doorX,int doorY){for(int y=top;y<=bottom;y++)for(int x=left;x<=right;x++)if(x==left||x==right||y==top||y==bottom)wall(x,y);ultimaAssets.townCollisionMap[doorY][doorX]=0;}
 void haven_init(void){
  memset(ultimaAssets.townCollisionMap,0,sizeof(ultimaAssets.townCollisionMap));
  for(int x=0;x<40;x++){wall(x,0);wall(x,21);}for(int y=0;y<22;y++){wall(0,y);wall(39,y);}ultimaAssets.townCollisionMap[21][20]=0;
  house(4,3,14,10,9,10);house(16,3,24,9,20,9);house(26,3,36,10,30,10);house(4,13,14,19,9,13);
- for(int y=0;y<192;y++)for(int x=0;x<280;x++){
-  int tx=x/7,ty=y/7;unsigned int c=0x172a29;
-  if(ty<22){c=(tx==20||tx==21||ty==11||ty==12)?0x7e735e:0x42614a;if(ultimaAssets.townCollisionMap[ty][tx])c=(y%7==0||x%7==0)?0x344454:0x8a9d9c;else if((x*3+y*7)%19==0)c=0x647b53;}
-  put(x,y,c);
+ for(int edition=0;edition<2;edition++){
+  for(int y=0;y<384;y++)for(int x=0;x<560;x++){
+   int tx=x/14,ty=y/14,tile=-1;unsigned int color;
+   if(ty<22){
+    if(ultimaAssets.townCollisionMap[ty][tx])tile=0;
+    else if(tx==20||tx==21||ty==11||ty==12)tile=edition?5:1;
+    else if((tx>4&&tx<14&&ty>3&&ty<10)||(tx>16&&tx<24&&ty>3&&ty<9))tile=1;
+    else if((tx>26&&tx<36&&ty>3&&ty<10)||(tx>4&&tx<14&&ty>13&&ty<19))tile=2;
+    else if(tx>=26&&tx<=36&&ty>=13&&ty<=19)tile=edition?5:4;
+   }
+   if(tile>=0)color=quest_art_pixel(1,tile,(x%14)*2,(y%14)*32/14);
+   else color=quest_art_pixel(0,1,(x%28),(y%32));
+   /* One temple mosaic, rather than a distracting symbol on every floor cell. */
+   if(tx>=18&&tx<23&&ty>=4&&ty<8)color=quest_art_pixel(1,edition?5:3,(x-18*14)*28/(5*14),(y-4*14)*32/(4*14));
+   if(ty>=22){
+    if(tx==20||tx==21)color=quest_art_pixel(0,4,x%28,y%32);
+    else if(ty>=24&&(tx<17||tx>24))color=quest_art_pixel(0,2,x%28,(y-24*14)%32);
+   }
+   unsigned int r=color>>24,g=(color>>16)&255,b=(color>>8)&255;
+   if(edition){r=(r*3+b)/4;g=g*9/10;b=b>235?255:b+20;}
+   put(x,y,(r<<16)|(g<<8)|b);
+  }
+  townTexture[edition]=texture_load(560,384,townPixels);
  }
- /* Flower garden and temple mosaic, original decorative pixels. */
- for(int y=99;y<126;y++)for(int x=185;x<255;x++)if((x+y)%11==0)put(x,y,(x%3==0)?0xe0b888:0x97779b);
- for(int y=28;y<56;y++)for(int x=120;x<165;x++)if((x-y)%13==0)put(x,y,0xd7c691);
- townTexture[0]=texture_load(280,192,townPixels);geometry_setSprite(&background,280,192,0,0,1,1);
- /* Vesper's twilight stone and memorial paths share native town movement,
-    but have a separate original palette and decorative name plaques. */
- for(int p=0;p<280*192*4;p+=4){unsigned int r=townPixels[p],g=townPixels[p+1],b=townPixels[p+2];townPixels[p]=(unsigned char)((r+b)/2);townPixels[p+1]=(unsigned char)(g*3/4);townPixels[p+2]=(unsigned char)((g+b)/2+20);}
- for(int y=101;y<128;y+=7)for(int x=190;x<250;x+=7)put(x,y,0xc5b3db);
- townTexture[1]=texture_load(280,192,townPixels);
- unsigned int colors[7]={0xe3c783,0x75bdb0,0xae8bba,0xa8b7c8,0x8cb46b,0xc6977f,0x75c4df};
- for(int i=0;i<7;i++)for(int y=0;y<7;y++)for(int x=0;x<7;x++){
-  int p=(y*49+i*7+x)*4;unsigned int c=y<3?0xe3bd91:colors[i];peoplePixels[p]=c>>16;peoplePixels[p+1]=c>>8;peoplePixels[p+2]=c;peoplePixels[p+3]=(x>=2&&x<=4)?255:0;
- }
- ultimaAssets.townCastleSprites.width=49;ultimaAssets.townCastleSprites.height=7;ultimaAssets.townCastleSprites.textureId=texture_load(49,7,peoplePixels);
- for(int i=0;i<6;i++)geometry_setSprite(&people[i],7,7,i/7.0f,0,(i+1)/7.0f,1);
+ geometry_setSprite(&background,280,192,0,0,1,1);
+ for(int i=0;i<6;i++)quest_interior_copy(peoplePixels,196,i,8+i);
+ quest_art_copy(peoplePixels,196,6,8);
+ ultimaAssets.townCastleSprites.width=196;ultimaAssets.townCastleSprites.height=32;ultimaAssets.townCastleSprites.textureId=texture_load(196,32,peoplePixels);
+ for(int i=0;i<6;i++)geometry_setSprite(&people[i],10,12,i/7.0f,0,(i+1)/7.0f,1);
  strcpy(ultimaStrings[341],"A wall or resident blocks the way.");
 }
 void haven_enter(void){quest_location=1;quest_conversation=-1;player.px=20;player.py=20;isPlayerInCastle=false;playerTown_init();camera_setPosition3f(&camera,0,0,10);quest_note("Haven. Meriel tends the northern temple. Walk south through the gate to leave.");}
 void vesper_enter(void){haven_enter();quest_location=3;quest_note("Vesper, City of Unwritten Names. Maera waits in the northern hall; Neris and Oren keep the southwest home and southeast memorial. The south gate leads back to the coast.");}
 void haven_render(void){
  matrix4_setIdentity(transform);geometry_render(&background,townTexture[quest_location==3],transform,camera_getViewProjectionMatrix(&camera));
- for(int i=0;i<6;i++){matrix4_setPosition(transform,positions[i][0]*7,positions[i][1]*7,2);geometry_render(&people[i],ultimaAssets.townCastleSprites.textureId,transform,camera_getViewProjectionMatrix(&camera));}
+ for(int i=0;i<6;i++){matrix4_setPosition(transform,positions[i][0]*7-1.5f,positions[i][1]*7-5,1+positions[i][1]*.02f);geometry_render(&people[i],ultimaAssets.townCastleSprites.textureId,transform,camera_getViewProjectionMatrix(&camera));}
  playerTown_render(camera_getViewProjectionMatrix(&camera));
 }
 int haven_interact(void){for(int i=0;i<6;i++)if(abs(player.px-positions[i][0])+abs(player.py-positions[i][1])==1){quest_conversation=i;return 1;}quest_note(quest_location==3?"Stand beside a resident and interact. Maera waits in the northern hall.":"Stand beside a resident and interact. Meriel is in the northern temple.");return 0;}

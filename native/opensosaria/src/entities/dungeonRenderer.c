@@ -17,6 +17,9 @@
 #ifdef CR_ORIGINAL
 /* Rendering must not overwrite the player's action/conversation message. */
 #define uiConsole_queueMessageFormat(...) ((void)0)
+void quest_dungeon_background(void);
+void quest_dungeon_walls(int distance,int front,int left,int right);
+void quest_dungeon_objects(void);
 #endif
 static int safeTile(int x,int y) {
   if(x<0||x>=OS_DUNGEON_MAP_WIDTH||y<0||y>=OS_DUNGEON_MAP_HEIGHT)return 1;
@@ -63,7 +66,11 @@ void dungeonRenderer_drawLine(int x0, int y0, int x1, int y1) {
   int err = dx - dy;
 
   while (1) {
+#ifdef CR_ORIGINAL
+    dungeonRenderer_setPixel(x0,y0,89,104,123);
+#else
     dungeonRenderer_setPixel(x0, y0, 255, 255, 255);
+#endif
     if (x0 == x1 && y0 == y1) break;
     int e2 = 2 * err;
     if (e2 > -dy) { err -= dy; x0 += stepX; } else
@@ -72,6 +79,9 @@ void dungeonRenderer_drawLine(int x0, int y0, int x1, int y1) {
 }
 
 static void dungeonRenderer_hgrColoring() {
+#ifdef CR_ORIGINAL
+  quest_dungeon_objects();return;
+#endif
   for (int y=0;y<160;y++){
     for (int x=0;x<OS_SCREEN_WIDTH;x++) {
       bool isOn = dungeonScreen[(y * OS_SCREEN_WIDTH + x) * 4] > 0;
@@ -128,6 +138,9 @@ static int dungeonRenderer_getFrontTile(int distance) {
 }
 
 static void dungeonRenderer_renderChest(int distance) {
+#ifdef CR_ORIGINAL
+  (void)distance;return; /* Original artwork is composited after walls. */
+#endif
   int t2 = distance + 1;
   dungeonRenderer_drawLine(139-20/t2,dungeonTable[distance][3],139-20/t2,dungeonTable[distance][3]-20/t2);
   dungeonRenderer_drawLine(139-20/t2,dungeonTable[distance][3]-20/t2,139+20/t2,dungeonTable[distance][3]-20/t2);
@@ -142,13 +155,22 @@ static void dungeonRenderer_renderChest(int distance) {
 
 void dungeonRenderer_update() {
   dungeonRenderer_clear();
+#ifdef CR_ORIGINAL
+  quest_dungeon_background();
+#endif
   bool shouldBreak = false;
 
   for (int distance=0;distance<OS_DUNGEON_TABLE_HEIGHT-1;distance++) {
     int centerTile = dungeonRenderer_getFrontTile(distance);
     int leftTile = dungeonRenderer_getLeftTile(distance);
     int rightTile = dungeonRenderer_getRightTile(distance);
+#ifdef CR_ORIGINAL
+    if(centerTile==8)centerTile=0; /* Exit steps/arch are painted with original art. */
+#endif
 
+#ifdef CR_ORIGINAL
+    quest_dungeon_walls(distance,centerTile,leftTile,rightTile);
+#endif
     int l1 = dungeonTable[distance][0];
     int r1 = dungeonTable[distance][1];
     int t1 = dungeonTable[distance][2];
@@ -321,6 +343,7 @@ void dungeonRenderer_update() {
         break;
       }
     } else {
+#ifndef CR_ORIGINAL
       int B = 79 + dungeonEnemiesHeight[distance>0?distance-1:0][0];
       int C = 139;
       int L = C - l1;
@@ -364,6 +387,7 @@ void dungeonRenderer_update() {
           break;
         }
       }
+#endif
     }
   }
 

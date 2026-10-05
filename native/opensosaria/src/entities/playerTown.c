@@ -26,11 +26,16 @@ static char itemToDrop[7];
 static bool droppedGold = false;
 
 void playerTown_init() {
+#ifdef CR_ORIGINAL
+  /* Original residents/player use full atlas cells; collision remains 7 by 7. */
+  geometry_setSprite(&playerTownGeometry,10,12,6.0f/7,0,1,1);
+#else
   float tx1 = (6.0f * OS_TOWN_CASTLE_SPRITE_WIDTH) / (float)ultimaAssets.townCastleSprites.width;
   float tx2 = (7.0f * OS_TOWN_CASTLE_SPRITE_WIDTH) / (float)ultimaAssets.townCastleSprites.width;
 
   geometry_setSprite(&playerTownGeometry, OS_TOWN_CASTLE_SPRITE_WIDTH, OS_TOWN_CASTLE_SPRITE_HEIGHT, tx1, 0, tx2, 1);
   
+#endif
   enemyEncounter.monsterId = 0;
   droppedGold = false;
 }
@@ -519,7 +524,12 @@ bool playerTown_update(float deltaTime) {
 
 void playerTown_render(float *viewMatrix) {
   matrix4_setIdentity(transformMatrix);
-  matrix4_setPosition(transformMatrix, player.px * OS_TOWN_CASTLE_SPRITE_WIDTH, player.py * OS_TOWN_CASTLE_SPRITE_HEIGHT, 1);
+#ifdef CR_ORIGINAL
+  /* Sort larger billboards by their feet, keeping adjacent faces visible. */
+  matrix4_setPosition(transformMatrix,player.px*7-1.5f,player.py*7-5,1+player.py*.02f+.001f);
+#else
+  matrix4_setPosition(transformMatrix,player.px*OS_TOWN_CASTLE_SPRITE_WIDTH,player.py*OS_TOWN_CASTLE_SPRITE_HEIGHT,1);
+#endif
 
   geometry_render(&playerTownGeometry, ultimaAssets.townCastleSprites.textureId, transformMatrix, viewMatrix);
 }
