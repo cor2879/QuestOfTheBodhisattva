@@ -14,21 +14,30 @@ function nativeZoomUI(s=nativeLast){
 }
 function nativeSetZoom(index,persist=true){nativeZoomIndex=Math.max(0,Math.min(nativeZoomLevels.length-1,index));if(nativeReady)nativeCall('quest_set_zoom','number',['number'],[nativeZoomLevels[nativeZoomIndex]]);if(persist)try{localStorage.setItem(NATIVE_ZOOM_KEY,String(nativeZoomLevels[nativeZoomIndex]));}catch{}nativeZoomUI();}
 n$('native-zoom-in').onclick=()=>nativeSetZoom(nativeZoomIndex+1);n$('native-zoom-out').onclick=()=>nativeSetZoom(nativeZoomIndex-1);n$('native-zoom-reset').onclick=()=>nativeSetZoom(0);
-// One turn per touch/pen press, never repeat while held. Mouse/keyboard use click.
-const nativePresses=new Map(),nativeSuppressedClicks=new WeakMap();
+// Use the browser's click as the ONLY activation path on every device.
+// Pointer tracking merely rejects drags/cancels; it never invokes an action.
+const nativePresses=new Map(),nativeCancelledClicks=new WeakMap();
 const nativeTouchButton=target=>target instanceof Element?target.closest('[data-native],[data-equip],.native-zoom button'):null;
 document.addEventListener('pointerdown',e=>{
- const b=nativeTouchButton(e.target);if(!b||!['touch','pen'].includes(e.pointerType))return;e.preventDefault();if(!e.isPrimary||b.disabled||nativePresses.has(e.pointerId))return;
- nativePresses.set(e.pointerId,b);nativeSuppressedClicks.set(b,Infinity);try{b.setPointerCapture(e.pointerId);}catch{}b.click();
-},{capture:true,passive:false});
-function nativeReleasePress(e){const b=nativePresses.get(e.pointerId);if(!b)return;nativePresses.delete(e.pointerId);nativeSuppressedClicks.set(b,Date.now()+1000);}
+ const b=nativeTouchButton(e.target);if(!b)return;nativeCancelledClicks.delete(b);if(!['touch','pen'].includes(e.pointerType)||b.disabled)return;
+ nativePresses.set(e.pointerId,{button:b,x:e.clientX,y:e.clientY,moved:!e.isPrimary});try{b.setPointerCapture(e.pointerId);}catch{}
+},true);
+document.addEventListener('pointermove',e=>{const press=nativePresses.get(e.pointerId);if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>12)press.moved=true;},true);
+function nativeReleasePress(e){const press=nativePresses.get(e.pointerId);if(!press)return;nativePresses.delete(e.pointerId);if(press.moved||e.type!=='pointerup')nativeCancelledClicks.set(press.button,Date.now()+1000);}
 for(const event of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(event,nativeReleasePress,true);
-document.addEventListener('click',e=>{const b=nativeTouchButton(e.target);if(b&&e.isTrusted&&(e.pointerType==='touch'||e.pointerType==='pen'||!e.pointerType&&e.detail>0)&&Date.now()<(nativeSuppressedClicks.get(b)||0)){e.preventDefault();e.stopImmediatePropagation();}},true);
+document.addEventListener('click',e=>{const b=nativeTouchButton(e.target);if(b&&(e.detail>0||e.pointerType==='touch'||e.pointerType==='pen')&&Date.now()<(nativeCancelledClicks.get(b)||0)){e.preventDefault();e.stopImmediatePropagation();}},true);
 for(const event of ['contextmenu','dragstart','selectstart'])document.addEventListener(event,e=>{if(e.target instanceof Element&&e.target.closest('button,#canvas'))e.preventDefault();},true);
-window.addEventListener('blur',()=>{for(const b of nativePresses.values())nativeSuppressedClicks.set(b,Date.now()+1000);nativePresses.clear();});
+window.addEventListener('blur',()=>{for(const press of nativePresses.values())nativeCancelledClicks.set(press.button,Date.now()+1000);nativePresses.clear();});
 // Keep one live status region beside the sticky map on phones, and with controls on desktop.
 const nativeFeedback=document.createElement('div');nativeFeedback.className='native-feedback';
 const nativeMessage=n$('native-message'),nativeControls=nativeMessage.parentElement;
+const nativeGamepad=document.createElement('div'),nativeFace=document.createElement('div'),nativeCombat=document.createElement('div');
+nativeGamepad.className='native-gamepad';nativeGamepad.setAttribute('role','group');nativeGamepad.setAttribute('aria-label','Gamepad controls');nativeFace.className='native-face';nativeCombat.className='native-combat native-actions';
+const nativePad=nativeControls.querySelector('.pad'),nativeTools=nativeControls.querySelector('.native-actions');
+nativePad.before(nativeGamepad);nativeGamepad.append(nativePad,nativeFace);
+for(const action of [7,6,5,12])nativeFace.append(nativeTools.querySelector('[data-native="'+action+'"]'));
+for(const action of [8,14,9,10])nativeCombat.append(nativeTools.querySelector('[data-native="'+action+'"]'));
+nativeGamepad.after(nativeCombat);nativeTools.classList.add('native-tools');nativeTools.setAttribute('aria-label','Journey tools');
 nativeControls.insertBefore(nativeFeedback,nativeControls.firstChild);
 nativeFeedback.append(nativeMessage.previousElementSibling,nativeMessage);
 const nativeMobile=matchMedia('(max-width:649px)');
@@ -45,6 +54,9 @@ function nativeSnapshot(){return JSON.parse(nativeCall('quest_state','string',[]
 function nativeUpdate(){
  if(!nativeCharacter)return;const s=nativeSnapshot(),d=nativeCall('quest_active_dungeon','string',[],[]).split(',').map(Number),trail=JSON.parse(nativeCall('quest_trail_state','string',[],[])),duel=s.location===0&&trail.active>0,inside=s.location===2||s.location===4,vesper=s.location===3||s.location===4;
  nativeZoomUI(s);
+ const strike=document.querySelector('[data-native="8"]'),wait=document.querySelector('[data-native="5"]');
+ if(inside||duel){if(!nativeFace.contains(strike)){nativeFace.insertBefore(strike,n$('native-power'));nativeCombat.prepend(wait);}}
+ else if(!nativeFace.contains(wait)){nativeFace.insertBefore(wait,n$('native-power'));nativeCombat.prepend(strike);}
  for(const b of document.querySelectorAll('[data-native]')){const a=+b.dataset.native;if(a>=1&&a<=4)b.disabled=duel;if(a===8){b.hidden=!inside&&!duel;b.textContent=duel?'Strike horror · F':'Strike ahead · F';}if(a===14)b.hidden=!duel;if(a===9||a===10){b.hidden=!inside||s.px!==9||s.py!==1||d[2]!==0;b.textContent=(a===9?(vesper?'Remember Choir':'Release Listener'):(vesper?'Shelter Choir':'Ward Listener'))+(a===9?' · R':' · B');}}
  for(const[a,label]of [[1,'Forward'],[2,'Turn around'],[3,'Turn left'],[4,'Turn right']])document.querySelector('[data-native="'+a+'"]').setAttribute('aria-label',inside?label:['','Move north','Move south','Move west','Move east'][a]);nativeLast=s;
  const gift=Aeon.MONADS[NATIVE_IDS[s.monad]];

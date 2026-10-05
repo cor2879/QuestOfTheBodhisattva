@@ -8,10 +8,13 @@ Repository: https://github.com/cor2879/QuestOfTheBodhisattva
 ### Touch and map-view quality of life
 
 Gameplay buttons block text selection, iOS callouts, dragging and browser
-gestures, matching the ASCII Invaders touch protections. Touch/pen presses act
-immediately once; holding or dragging never repeats turns or triggers a second
-button. Compatibility clicks are suppressed; mouse clicks and keyboard
-activation still work. The page can scroll from panel gaps/text, and text inputs
+gestures, matching the ASCII Invaders touch protections. A single browser
+click/release is the only activation path for touch, mouse
+and keyboard: touch-down never synthesizes a second click. Holds do not repeat,
+and finger drags/cancelled touches perform no action. The compact gamepad groups
+directions on the left and four rounded primary actions on the right on phones;
+contextual combat actions and a two-column journey-tools group sit beneath.
+The page can scroll from panel gaps/text, and text inputs
 remain editable. Selection/copying of story and journal text is not disabled.
 
 The **Map zoom** buttons above the directional pad offer **1×, 1.5×, 2× and 3×**.

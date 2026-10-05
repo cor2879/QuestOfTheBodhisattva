@@ -25,6 +25,19 @@ button,button *,#canvas{user-select:none;-webkit-user-select:none;-webkit-touch-
 .native-zoom output{min-width:45px;text-align:center;color:var(--gold);font-variant-numeric:tabular-nums}
 .native-zoom button{min-width:44px;padding:6px 10px}
 .native-zoom-label{text-align:center;font-size:11px;color:var(--muted);margin:8px 0 0}
+.native-gamepad{display:grid;grid-template-columns:142px minmax(0,1fr);align-items:center;gap:12px;margin:14px 0}
+.native-gamepad .pad{margin:0}
+.native-face{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.native-face button{border-radius:45%;min-height:72px;padding:6px 4px;font-size:11px;line-height:1.25;overflow-wrap:anywhere}
+.native-face [data-native="6"]{border-color:#c9af79;color:#f0d89e}
+.native-face [data-native="12"]{border-color:#8775b4;color:#d5c5ef}
+.native-face [data-native="7"]{border-color:#629582;color:#b7e1d0}
+.native-face [data-native="8"]{border-color:#b27481;color:#f1bdc7}
+.native-combat,.native-tools{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px}
+.native-combat:has(>button:not([hidden])){padding-bottom:10px;border-bottom:1px solid var(--line)}
+.native-combat:not(:has(>button:not([hidden]))){display:none}
+@media(min-width:650px){.native-gamepad{grid-template-columns:1fr}.native-face{width:min(100%,200px);justify-self:center}}
+@media(max-width:370px){.native-gamepad{gap:8px}.native-face{gap:5px}.native-face button{font-size:10px}}
 @media(max-width:649px){
  .view .native-feedback{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:#151e2e;flex:none}
  .view .native-feedback .eyebrow{font-size:9px;letter-spacing:1.5px}
