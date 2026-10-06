@@ -1,0 +1,22 @@
+const {chromium}=require('playwright'),path=require('node:path'),http=require('node:http'),fs=require('node:fs'),assert=require('node:assert/strict');
+(async()=>{
+ const root=path.resolve(__dirname,'../build/pages'),prefix='/QuestOfTheBodhisattva/';
+ const server=http.createServer((req,res)=>{try{const name=decodeURIComponent(new URL(req.url,'http://localhost').pathname.slice(prefix.length))||'index.html',file=path.resolve(root,name);if(!file.startsWith(root+path.sep))throw Error();res.setHeader('Content-Type',({'.mp3':'audio/mpeg','.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png'})[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));}catch{res.writeHead(404).end();}});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,headless:true});
+ try{for(const viewport of [{width:1280,height:800},{width:390,height:844}]){
+  const p=await browser.newPage({viewport,hasTouch:viewport.width<650}),errors=[];p.on('pageerror',e=>errors.push(e.message));const requests=[];p.on('request',r=>{if(r.url().endsWith('.mp3'))requests.push(r.url());});
+  await p.goto(`http://127.0.0.1:${server.address().port}${prefix}`);await p.waitForSelector('#welcome[open]');assert.equal(requests.length,0);assert(await p.evaluate(()=>document.getElementById('quest-music').paused));
+  await p.click('#choose-direct');await p.waitForFunction(()=>{const a=document.getElementById('quest-music');return !a.paused&&a.currentTime>0&&a.src.endsWith('/title.mp3');});await p.click('[data-monad="raphael"]');await p.click('#begin');
+  async function playing(track){await p.waitForFunction(t=>{const a=document.getElementById('quest-music');return !a.paused&&a.currentTime>0&&a.src.endsWith('/'+t+'.mp3');},track);}
+  await playing('coast');const turn=await p.evaluate(()=>nativeSnapshot().turn);
+  for(const [location,track] of [[1,'town'],[3,'town'],[2,'dungeon'],[4,'dungeon'],[0,'coast']]){await p.evaluate(l=>QuestMusic.update({location:l}),location);await playing(track);assert.equal(await p.evaluate(()=>nativeSnapshot().turn),turn);}
+  // Ordinary turns do not restart the track, and the audio element loops.
+  await p.evaluate(()=>{const a=document.getElementById('quest-music');a.currentTime=10;nativeUpdate();});assert(await p.evaluate(()=>document.getElementById('quest-music').currentTime>=10));assert(await p.evaluate(()=>document.getElementById('quest-music').loop));
+  await p.evaluate(()=>{const a=document.getElementById('quest-music');a.currentTime=a.duration-.2;});await p.waitForFunction(()=>document.getElementById('quest-music').currentTime<3);
+  await p.locator('#music-volume').fill('21');assert.equal(await p.evaluate(()=>document.getElementById('quest-music').volume),.21);
+  await p.click('#music-toggle');assert(await p.evaluate(()=>document.getElementById('quest-music').paused));await p.reload();await p.waitForSelector('#welcome[open]');assert.equal(await p.locator('#music-toggle').getAttribute('aria-pressed'),'false');assert.equal(await p.locator('#music-volume').inputValue(),'21');
+  await p.click('#welcome-resume');assert(await p.evaluate(()=>document.getElementById('quest-music').paused));await p.click('#music-toggle');await playing('coast');
+  await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));});assert(await p.evaluate(()=>document.getElementById('quest-music').paused));await p.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});await playing('coast');
+  await p.click('#native-new');await playing('title');assert.deepEqual(errors,[]);await p.close();console.log('PASS soundtrack: gesture unlock, all scenes, looping, no turn changes, mute/volume persistence, background pause',viewport);
+ }}finally{await browser.close();await new Promise(r=>server.close(r));}
+})().catch(e=>{console.error(e);process.exit(1)});

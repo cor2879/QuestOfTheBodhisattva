@@ -58,7 +58,7 @@ function nativeUpdate(){
  if(inside||duel){if(!nativeFace.contains(strike)){nativeFace.insertBefore(strike,n$('native-power'));nativeCombat.prepend(wait);}}
  else if(!nativeFace.contains(wait)){nativeFace.insertBefore(wait,n$('native-power'));nativeCombat.prepend(strike);}
  for(const b of document.querySelectorAll('[data-native]')){const a=+b.dataset.native;if(a>=1&&a<=4)b.disabled=duel;if(a===8){b.hidden=!inside&&!duel;b.textContent=duel?'Strike horror · F':'Strike ahead · F';}if(a===14)b.hidden=!duel;if(a===9||a===10){b.hidden=!inside||s.px!==9||s.py!==1||d[2]!==0;b.textContent=(a===9?(vesper?'Remember Choir':'Release Listener'):(vesper?'Shelter Choir':'Ward Listener'))+(a===9?' · R':' · B');}}
- for(const[a,label]of [[1,'Forward'],[2,'Turn around'],[3,'Turn left'],[4,'Turn right']])document.querySelector('[data-native="'+a+'"]').setAttribute('aria-label',inside?label:['','Move north','Move south','Move west','Move east'][a]);nativeLast=s;
+ for(const[a,label]of [[1,'Forward'],[2,'Turn around'],[3,'Turn left'],[4,'Turn right']])document.querySelector('[data-native="'+a+'"]').setAttribute('aria-label',inside?label:['','Move north','Move south','Move west','Move east'][a]);nativeLast=s;QuestMusic.update(s);
  const gift=Aeon.MONADS[NATIVE_IDS[s.monad]];
  n$('native-power').textContent=gift.power+' · P · 3 Light';n$('native-power').disabled=s.light<3||s.hp<=0||s.food<=0||(!inside&&!duel&&s.monad!==2);
  n$('native-power-description').textContent=gift.description;
@@ -109,6 +109,7 @@ function nativeRestore(text){
  if(typeof engines!=='string'||engines.length>90)throw Error('Invalid quest engine');
  if(!nativeCall('quest_restore_v7','number',[...keys.map(()=> 'number'),'string','string','string','string','string'],[...keys.map(k=>s[k]),dungeon,growth,chapter,trail,engines]))throw Error('Invalid or impassable saved location');
  nativeCall('quest_set_name',null,['string'],[c.name]);nativeCharacter=c;nativeCloseConversation(false);nativeUpdate();if(n$('welcome').open)n$('welcome').close();nativeCanvas.focus({preventScroll:true});
+ if(window.parent!==window)window.parent.postMessage({type:'vp-arcade-start',game:'quest-of-the-bodhisattva'},'https://venomouspress.com');
 }
 function nativeShowConversation(){
  const data=JSON.parse(nativeCall('quest_dialogue','string',[],[]));if(!data)return;
@@ -122,6 +123,7 @@ function nativeBegin(character){
  nativeCharacter=character.creation;nativeCall('quest_start','number',['number','string'],[NATIVE_IDS.indexOf(character.monad),nativeCharacter.name]);
  let seed=2166136261;for(const c of character.world)seed=Math.imul(seed^c.charCodeAt(0),16777619);nativeCall('quest_set_seed',null,['number'],[(seed>>>0)%2147483647||1]);
  n$('welcome').close();nativeUpdate();nativeSave();nativeCanvas.focus({preventScroll:true});
+ if(window.parent!==window)window.parent.postMessage({type:'vp-arcade-start',game:'quest-of-the-bodhisattva'},'https://venomouspress.com');
 }
 function nativeAct(action){if(!nativeReady||!nativeCharacter||n$('welcome').open||n$('conversation').open)return;nativeCall('quest_action','number',['number'],[action]);nativeUpdate();nativeSave();nativeShowConversation();if(!n$('conversation').open)nativeCanvas.focus({preventScroll:true});}
 for(const b of document.querySelectorAll('[data-native]'))b.onclick=()=>nativeAct(+b.dataset.native);

@@ -44,3 +44,5 @@ button,button *,#canvas{user-select:none;-webkit-user-select:none;-webkit-touch-
  .view .native-feedback .native-status{height:4.5em;min-height:0;overflow:auto;overscroll-behavior:contain;margin:3px 0 0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
  .view .viewport{width:min(100%,calc(max(80px,100dvh - 270px)*280/192))}
 }
+
+.music-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px}.music-controls label{display:flex;align-items:center;gap:8px;font-size:12px}.music-controls input{width:100px;accent-color:#dfc17c}.music-controls button{min-height:44px}.music-controls .fine{margin:0}

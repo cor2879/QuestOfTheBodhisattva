@@ -6,8 +6,11 @@ subprocess.run(['make','-C',str(root/'native')],check=True)
 html=(root/'native/template.html').read_text()
 (root/'index.html').write_text(html)
 html=html.replace('<link rel="stylesheet" href="style.css">','<style>'+(root/'style.css').read_text()+'</style>')
-for name in ['monads.js','fortune.js','art.js','creation-ui.js','native-host.js','native/web/quest.js']:
+for name in ['monads.js','fortune.js','art.js','creation-ui.js','music.js','native-host.js','native/web/quest.js']:
  text=(root/name).read_text()
+ if name=='music.js':
+  for track in ['title','town','coast','dungeon']:
+   text=text.replace('assets/music/'+track+'.mp3','data:audio/mpeg;base64,'+base64.b64encode((root/'assets/music'/f'{track}.mp3').read_bytes()).decode())
  if name=='art.js':
   for monad in ['ariel','samael','raphael','jophiel','lilith']:
    text=text.replace('assets/'+monad+'.png','data:image/png;base64,'+base64.b64encode((root/'assets'/f'{monad}.png').read_bytes()).decode())

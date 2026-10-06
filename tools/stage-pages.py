@@ -6,9 +6,10 @@ out=root/'build'/'pages'
 if out.exists(): shutil.rmtree(out)
 out.mkdir(parents=True)
 files=['index.html','style.css','monads.js','fortune.js','art.js','creation-ui.js',
-       'native-host.js','engine.js','game.js','native/web/quest.js',
+       'music.js','native-host.js','engine.js','game.js','native/web/quest.js',
        'legacy/index.html','legacy/art.js']
 files += [f'assets/{name}.png' for name in ['ariel','samael','raphael','jophiel','lilith']]
+files += [f'assets/music/{name}.mp3' for name in ['title','town','coast','dungeon']]
 for name in files:
     target=out/name
     target.parent.mkdir(parents=True,exist_ok=True)
