@@ -1,0 +1,657 @@
+<section class="vp-arcade-hub" aria-labelledby="ArcadeHubTitle-{{ section.id }}">
+  <div class="vp-arcade-hub__header page-width">
+    <p class="vp-arcade-hub__eyebrow">{{ 'sections.arcade_hub.eyebrow' | t }}</p>
+    <h1 id="ArcadeHubTitle-{{ section.id }}">{{ 'sections.arcade_hub.title' | t }}</h1>
+    <p>{{ 'sections.arcade_hub.description' | t }}</p>
+  </div>
+
+  <div class="vp-arcade-hub__floor page-width">
+    <a class="vp-cabinet vp-cabinet--muglump" href="{{ routes.root_url }}pages/hunt-the-muglump">
+      <span class="vp-cabinet__marquee">{{ 'sections.arcade_hub.hunt_title' | t }}</span>
+      <span class="vp-cabinet__screen">
+        {% if section.settings.hunt_image != blank %}
+          {{ section.settings.hunt_image | image_url: width: 1600 | image_tag: loading: 'eager', widths: '480, 720, 960, 1200, 1600', sizes: '(min-width: 990px) 46vw, 92vw', alt: section.settings.hunt_image.alt }}
+        {% else %}
+          <span class="vp-cabinet__muglump-fallback" aria-hidden="true"></span>
+        {% endif %}
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">{{ 'sections.arcade_hub.play_hunt' | t }}</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>{{ 'sections.arcade_hub.hunt_tagline' | t }}</span>
+      </span>
+    </a>
+
+    <a class="vp-cabinet vp-cabinet--asteroid" href="{{ routes.root_url }}pages/asteroid-bounce">
+      <span class="vp-cabinet__marquee">{{ 'sections.arcade_hub.asteroid_title' | t }}</span>
+      <span class="vp-cabinet__screen">
+        {% if section.settings.asteroid_image != blank %}
+          {{ section.settings.asteroid_image | image_url: width: 1600 | image_tag: loading: 'lazy', widths: '480, 720, 960, 1200, 1600', sizes: '(min-width: 990px) 46vw, 92vw', alt: section.settings.asteroid_image.alt }}
+        {% else %}
+          <span class="vp-cabinet__asteroid-fallback" aria-hidden="true"><i></i></span>
+        {% endif %}
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">{{ 'sections.arcade_hub.play_asteroid' | t }}</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>{{ 'sections.arcade_hub.asteroid_tagline' | t }}</span>
+      </span>
+    </a>
+
+    <a class="vp-cabinet vp-cabinet--troll" href="{{ routes.root_url }}pages/bridge-troll-simulator">
+      <span class="vp-cabinet__marquee">{{ 'sections.arcade_hub.troll_title' | t }}</span>
+      <span class="vp-cabinet__screen">
+        <img
+          src="https://cdn.shopify.com/s/files/1/0756/5121/9672/files/bridge-troll-simulator-arcade-card.png?v=1790432479"
+          alt="{{ 'sections.arcade_hub.troll_title' | t | escape }}"
+          loading="lazy"
+          width="1672"
+          height="941"
+        >
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">{{ 'sections.arcade_hub.play_troll' | t }}</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>{{ 'sections.arcade_hub.troll_tagline' | t }}</span>
+      </span>
+    </a>
+
+    <a class="vp-cabinet vp-cabinet--synthbreak" href="{{ routes.root_url }}pages/synthbreak">
+      <span class="vp-cabinet__marquee">{{ 'sections.arcade_hub.synth_title' | t }}</span>
+      <span class="vp-cabinet__screen">
+        <img
+          src="https://cdn.shopify.com/s/files/1/0756/5121/9672/files/synthbreak-arcade-card.png?v=1790789785"
+          alt="{{ 'sections.arcade_hub.synth_title' | t | escape }}"
+          loading="lazy"
+          width="1086"
+          height="1448"
+        >
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">{{ 'sections.arcade_hub.play_synth' | t }}</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>{{ 'sections.arcade_hub.synth_tagline' | t }}</span>
+      </span>
+    </a>
+
+    <a class="vp-cabinet vp-cabinet--feed" href="{{ routes.root_url }}pages/feed-the-homeless">
+      <span class="vp-cabinet__marquee">{{ 'sections.arcade_hub.feed_title' | t }}</span>
+      <span class="vp-cabinet__screen">
+        <span class="vp-cabinet__feed-fallback" aria-hidden="true">
+          <strong>FEED THE<br>HOMELESS</strong>
+          <i></i>
+          <b></b>
+        </span>
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">{{ 'sections.arcade_hub.play_feed' | t }}</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>{{ 'sections.arcade_hub.feed_tagline' | t }}</span>
+      </span>
+    </a>
+    <a class="vp-cabinet vp-cabinet--yumhuman" href="{{ routes.root_url }}pages/yumhuman">
+      <span class="vp-cabinet__marquee">{{ 'sections.arcade_hub.yum_title' | t }}</span>
+      <span class="vp-cabinet__screen">
+        <img
+          src="https://cdn.shopify.com/s/files/1/0756/5121/9672/files/yumhuman-gameplay.png?v=1790817391"
+          alt="{{ 'sections.arcade_hub.yum_title' | t | escape }}"
+          loading="lazy"
+          width="1317"
+          height="985"
+        >
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">{{ 'sections.arcade_hub.play_yum' | t }}</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>{{ 'sections.arcade_hub.yum_tagline' | t }}</span>
+      </span>
+    </a>
+    <a class="vp-cabinet vp-cabinet--ascii" href="{{ routes.root_url }}pages/ascii-invaders">
+      <span class="vp-cabinet__marquee">ASCII Invaders</span>
+      <span class="vp-cabinet__screen">
+        <img src="https://cdn.shopify.com/s/files/1/0756/5121/9672/files/ascii-invaders-arcade.png?v=1791163587" alt="ASCII Invaders neon space shooter" loading="lazy" width="1672" height="941">
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">Play ASCII Invaders</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>Neon space battles · Boss fights · Epic 16-bit soundtrack</span>
+      </span>
+    </a>
+    <a class="vp-cabinet vp-cabinet--bodhisattva" href="{{ routes.root_url }}pages/quest-of-the-bodhisattva">
+      <span class="vp-cabinet__marquee">Quest of the Bodhisattva</span>
+      <span class="vp-cabinet__screen">
+        <img src="https://cdn.shopify.com/s/files/1/0756/5121/9672/files/quest-of-the-bodhisattva-lantern-coast.png?v=1791251815" alt="Quest of the Bodhisattva — Lantern Coast concept art" loading="lazy" width="1536" height="1024">
+        <span class="vp-cabinet__screen-shade"></span>
+        <span class="vp-cabinet__prompt">Play free · In development</span>
+      </span>
+      <span class="vp-cabinet__deck">
+        <span class="vp-cabinet__stick" aria-hidden="true"></span>
+        <span class="vp-cabinet__button" aria-hidden="true"></span>
+        <span>Open Sosaria RPG · Five Monads · Original soundtrack</span>
+      </span>
+    </a>
+  </div>
+
+  <p class="vp-arcade-hub__credit page-width">Eight playable originals · More worlds incoming</p>
+</section>
+
+{% stylesheet %}
+  .vp-cabinet--ascii .vp-cabinet__screen { aspect-ratio:1672/941; }
+  .vp-cabinet--ascii .vp-cabinet__screen img { object-fit:contain; }
+  .vp-cabinet--ascii .vp-cabinet__prompt { bottom:.35rem; padding:.45rem; }
+
+  .vp-arcade-hub {
+    min-height: 80vh;
+    padding: clamp(3.5rem, 8vw, 8rem) 0;
+    color: #f8f2e7;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(111, 40, 153, 0.34), transparent 36rem),
+      linear-gradient(180deg, #08040d 0%, #020104 68%, #120819 100%);
+  }
+
+  .vp-arcade-hub__header {
+    max-width: 68rem;
+    text-align: center;
+  }
+
+  .vp-arcade-hub__eyebrow,
+  .vp-arcade-hub__credit {
+    color: #e5bd63;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .vp-arcade-hub__header h1 {
+    margin: 0;
+    color: #fff8e9;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(3.5rem, 10vw, 8.5rem);
+    font-weight: 500;
+    line-height: 0.88;
+    text-shadow: 0 0 2.5rem rgba(151, 76, 190, 0.45);
+  }
+
+  .vp-arcade-hub__header > p:last-child {
+    max-width: 48rem;
+    margin: 1.5rem auto 0;
+    color: #d5ccda;
+    font-size: clamp(1rem, 1.8vw, 1.25rem);
+    line-height: 1.7;
+  }
+
+  .vp-arcade-hub__floor {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1rem, 2.5vw, 2.5rem);
+    align-items: stretch;
+    margin-top: clamp(3rem, 7vw, 7rem);
+    perspective: 90rem;
+  }
+
+  .vp-cabinet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(229, 189, 99, 0.58);
+    border-radius: 1.1rem 1.1rem 0.35rem 0.35rem;
+    color: #fff8e9;
+    background: linear-gradient(145deg, #281331, #08050b 52%, #1a0c21);
+    box-shadow: 0 2.5rem 5rem rgba(0, 0, 0, 0.62), inset 0 0 0 0.3rem rgba(255, 255, 255, 0.025);
+    text-decoration: none;
+    transform: rotateY(2deg);
+    transition: transform 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+  }
+
+  .vp-cabinet:nth-child(2) {
+    transform: none;
+  }
+
+  .vp-cabinet:nth-child(3) {
+    transform: rotateY(-2deg);
+  }
+
+  .vp-cabinet:hover,
+  .vp-cabinet:focus-visible {
+    border-color: #f1ce78;
+    box-shadow: 0 3rem 7rem rgba(0, 0, 0, 0.72), 0 0 2.5rem rgba(121, 51, 164, 0.35);
+    outline: none;
+    transform: translateY(-0.55rem) rotateY(0);
+  }
+
+  .vp-cabinet__marquee {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 6.6rem;
+    box-sizing: border-box;
+    padding: 1.15rem 1rem;
+    border-bottom: 1px solid rgba(229, 189, 99, 0.42);
+    color: #f7dc94;
+    background: radial-gradient(circle, rgba(137, 57, 177, 0.5), transparent 68%);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.35rem, 3vw, 2.4rem);
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .vp-cabinet__screen {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 10;
+    margin: clamp(0.65rem, 1.4vw, 1.2rem);
+    overflow: hidden;
+    border: clamp(0.45rem, 1vw, 0.8rem) solid #030205;
+    border-radius: 0.6rem;
+    background: #050308;
+  }
+
+  .vp-cabinet__screen img,
+  .vp-cabinet__muglump-fallback,
+  .vp-cabinet__asteroid-fallback,
+  .vp-cabinet__troll-fallback,
+  .vp-cabinet__synth-fallback,
+  .vp-cabinet__feed-fallback {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .vp-cabinet--muglump .vp-cabinet__screen img {
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  .vp-cabinet__muglump-fallback,
+  .vp-cabinet__asteroid-fallback,
+  .vp-cabinet__troll-fallback,
+  .vp-cabinet__synth-fallback,
+  .vp-cabinet__feed-fallback {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .vp-cabinet__muglump-fallback {
+    background:
+      radial-gradient(circle at 70% 35%, rgba(178, 53, 48, 0.78), transparent 24%),
+      radial-gradient(circle at 30% 50%, rgba(53, 159, 186, 0.45), transparent 28%),
+      linear-gradient(135deg, #201027, #4a2730 48%, #0d1d28);
+  }
+
+  .vp-cabinet__asteroid-fallback {
+    background:
+      radial-gradient(circle at 12% 20%, #f7f1d7 0 0.08rem, transparent 0.12rem),
+      radial-gradient(circle at 72% 34%, #d9d7ff 0 0.08rem, transparent 0.12rem),
+      radial-gradient(circle at 42% 78%, #fff 0 0.06rem, transparent 0.1rem),
+      linear-gradient(145deg, #060812, #151036 55%, #03040a);
+  }
+
+  .vp-cabinet__asteroid-fallback i {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    width: 24%;
+    aspect-ratio: 1;
+    border-radius: 46% 54% 40% 60%;
+    background: radial-gradient(circle at 32% 28%, #aca8a0, #5d5a58 58%, #29282d);
+    box-shadow: -1rem 1.5rem 2.8rem rgba(156, 80, 211, 0.45);
+    transform: translateX(-50%) rotate(18deg);
+  }
+
+  .vp-cabinet__troll-fallback {
+    background:
+      radial-gradient(circle at 72% 22%, #fff3c4 0 7%, rgba(255, 243, 196, 0.2) 7.5%, transparent 15%),
+      linear-gradient(180deg, #120a25 0 55%, #13253a 55% 72%, #07101b 72%);
+  }
+
+  .vp-cabinet__troll-fallback i {
+    position: absolute;
+    right: 7%;
+    bottom: 18%;
+    left: 7%;
+    height: 34%;
+    background: linear-gradient(180deg, #49424b, #17131b);
+    clip-path: polygon(0 22%, 12% 8%, 88% 8%, 100% 22%, 100% 45%, 88% 45%, 82% 100%, 68% 100%, 63% 45%, 37% 45%, 32% 100%, 18% 100%, 12% 45%, 0 45%);
+  }
+
+  .vp-cabinet__troll-fallback b {
+    position: absolute;
+    bottom: 34%;
+    left: 50%;
+    width: 15%;
+    height: 31%;
+    border-radius: 46% 46% 32% 32%;
+    background: #09070d;
+    box-shadow: -0.9rem 1.8rem 0 -0.35rem #09070d, 0.9rem 1.8rem 0 -0.35rem #09070d;
+    transform: translateX(-50%);
+  }
+
+  .vp-cabinet__troll-fallback b::before {
+    position: absolute;
+    top: -18%;
+    left: 50%;
+    width: 112%;
+    height: 38%;
+    background: #09070d;
+    clip-path: polygon(0 0, 34% 34%, 50% 0, 66% 34%, 100% 0, 82% 100%, 18% 100%);
+    content: "";
+    transform: translateX(-50%);
+  }
+
+  .vp-cabinet__troll-fallback b::after {
+    position: absolute;
+    top: 24%;
+    left: 29%;
+    width: 0.28rem;
+    aspect-ratio: 1;
+    background: #ff3c2f;
+    box-shadow: 1.05rem 0 0 #ff3c2f, 0 0 0.55rem #ff3c2f, 1.05rem 0 0.55rem #ff3c2f;
+    content: "";
+  }
+
+  .vp-cabinet__synth-fallback {
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(255, 45, 120, 0.18), transparent 34%),
+      linear-gradient(180deg, #0a0010 0%, #13001d 58%, #050008 100%);
+  }
+
+  .vp-cabinet__synth-fallback::before {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0, 245, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 245, 255, 0.08) 1px, transparent 1px);
+    background-size: 2rem 2rem;
+    content: "";
+    transform: perspective(18rem) rotateX(58deg) scale(1.4);
+    transform-origin: 50% 100%;
+  }
+
+  .vp-cabinet__synth-fallback strong {
+    position: absolute;
+    top: 15%;
+    right: 4%;
+    left: 4%;
+    z-index: 2;
+    color: #ff2d78;
+    font-family: "Courier New", monospace;
+    font-size: clamp(1.3rem, 4vw, 2.3rem);
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-shadow: 0 0 0.5rem #ff2d78, 0 0 1.2rem rgba(255, 45, 120, 0.65);
+  }
+
+  .vp-cabinet__synth-fallback i {
+    position: absolute;
+    top: 46%;
+    right: 10%;
+    left: 10%;
+    z-index: 2;
+    height: 28%;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        #00f5ff 0 8%,
+        transparent 8% 10%
+      ),
+      repeating-linear-gradient(
+        180deg,
+        rgba(255, 45, 120, 0.9) 0 22%,
+        transparent 22% 33%
+      );
+    filter: drop-shadow(0 0 0.35rem rgba(0, 245, 255, 0.65));
+  }
+
+  .vp-cabinet__synth-fallback b {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    z-index: 2;
+    width: 28%;
+    height: 5%;
+    border: 1px solid #00f5ff;
+    border-radius: 999px;
+    background: #004466;
+    box-shadow: 0 0 0.7rem rgba(0, 245, 255, 0.8);
+    transform: translateX(-50%);
+  }
+
+  .vp-cabinet__synth-fallback b::before {
+    position: absolute;
+    top: -2.4rem;
+    left: 62%;
+    width: 0.7rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0.8rem #00f5ff;
+    content: "";
+  }
+
+  .vp-cabinet__feed-fallback {
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, #2d1b0e 0 48%, #333 48% 78%, #1a1207 78% 100%);
+  }
+
+  .vp-cabinet__feed-fallback::before {
+    position: absolute;
+    top: 55%;
+    right: 0;
+    left: 0;
+    height: 0.22rem;
+    background: repeating-linear-gradient(90deg, #ffd54f 0 2.8rem, transparent 2.8rem 4.5rem);
+    content: "";
+  }
+
+  .vp-cabinet__feed-fallback strong {
+    position: absolute;
+    top: 12%;
+    right: 4%;
+    left: 4%;
+    z-index: 2;
+    color: #ffb300;
+    font-family: "Courier New", monospace;
+    font-size: clamp(1.15rem, 3vw, 2rem);
+    line-height: 1.05;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-shadow: 0 0 0.7rem rgba(245, 158, 11, 0.45);
+  }
+
+  .vp-cabinet__feed-fallback i,
+  .vp-cabinet__feed-fallback b {
+    position: absolute;
+    bottom: 18%;
+    z-index: 2;
+    width: 18%;
+    height: 15%;
+    border-radius: 0.35rem;
+    background: #e74c3c;
+    box-shadow: inset 0 -0.35rem 0 rgba(0,0,0,0.25);
+  }
+
+  .vp-cabinet__feed-fallback i {
+    left: 16%;
+  }
+
+  .vp-cabinet__feed-fallback b {
+    right: 16%;
+    background: #3498db;
+  }
+
+  .vp-cabinet__feed-fallback i::before,
+  .vp-cabinet__feed-fallback b::before {
+    position: absolute;
+    right: 12%;
+    bottom: -22%;
+    left: 12%;
+    height: 32%;
+    border-radius: 999px;
+    background: #151515;
+    content: "";
+  }
+
+  .vp-cabinet--coming-soon {
+    cursor: default;
+    opacity: 0.88;
+  }
+
+  .vp-cabinet--coming-soon .vp-cabinet__stick::before,
+  .vp-cabinet--coming-soon .vp-cabinet__button {
+    filter: grayscale(1);
+  }
+
+  .vp-cabinet__screen-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%, rgba(0, 0, 0, 0.35));
+    box-shadow: inset 0 0 3rem rgba(0, 0, 0, 0.65);
+  }
+
+  .vp-cabinet__prompt {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(241, 206, 120, 0.66);
+    color: #fff8e9;
+    background: rgba(5, 3, 8, 0.84);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .vp-cabinet__deck {
+    display: grid;
+    margin-top: auto;
+    grid-template-columns: auto auto 1fr;
+    gap: 1rem;
+    align-items: center;
+    min-height: 5.5rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(229, 189, 99, 0.35);
+    color: #cfc4d4;
+    font-size: 0.9rem;
+  }
+
+  .vp-cabinet__stick {
+    position: relative;
+    width: 0.45rem;
+    height: 1.65rem;
+    margin-left: 0.65rem;
+    background: #d9b45f;
+    box-shadow: 0 0.9rem 0 0.55rem #19121c;
+  }
+
+  .vp-cabinet__stick::before {
+    position: absolute;
+    top: -0.55rem;
+    left: 50%;
+    width: 1rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #7a2aa3;
+    content: "";
+    transform: translateX(-50%);
+  }
+
+  .vp-cabinet__button {
+    width: 1.35rem;
+    aspect-ratio: 1;
+    border: 0.18rem solid #2f172f;
+    border-radius: 50%;
+    background: #d04b42;
+    box-shadow: 0 0.2rem 0 #681f25;
+  }
+
+  .vp-arcade-hub__credit {
+    margin-top: 3rem;
+    text-align: center;
+  }
+
+  @media (max-width: 989px) {
+    .vp-arcade-hub__floor {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+  }
+
+  @media (max-width: 749px) {
+    .vp-arcade-hub__floor {
+      grid-template-columns: 1fr;
+    }
+
+    .vp-cabinet,
+    .vp-cabinet:nth-child(2),
+    .vp-cabinet:nth-child(3) {
+      grid-column: auto;
+      width: auto;
+      height: auto;
+      transform: none;
+    }
+
+    .vp-cabinet__marquee {
+      min-height: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vp-cabinet {
+      transition: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:sections.arcade_hub.name",
+  "tag": "section",
+  "class": "section",
+  "limit": 1,
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "hunt_image",
+      "label": "t:sections.arcade_hub.hunt_image"
+    },
+    {
+      "type": "image_picker",
+      "id": "asteroid_image",
+      "label": "t:sections.arcade_hub.asteroid_image"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.arcade_hub.name"
+    }
+  ],
+  "enabled_on": {
+    "templates": ["page", "index"]
+  }
+}
+{% endschema %}
+
